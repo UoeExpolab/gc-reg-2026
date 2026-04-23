@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Grand Challenges · Registration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+<link rel="icon" href="assets/sprig.svg">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="forms.jsx"></script>
+<script type="text/babel" src="landing.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "density": "comfortable",
+  "paperTone": "warm",
+  "sprig": true,
+  "gold": "default"
+}/*EDITMODE-END*/;
+
+function App() {
+  // Persisted state
+  const [view, setView] = React.useState(() => localStorage.getItem("gc.view") || "landing");
+  const [flow, setFlow] = React.useState(() => localStorage.getItem("gc.flow") || "team");
+  const [result, setResult] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem("gc.result")) || null; } catch { return null; }
+  });
+  const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
+  const [tweaksOpen, setTweaksOpen] = React.useState(false);
+
+  const [toasts, setToasts] = React.useState([]);
+
+  React.useEffect(() => { localStorage.setItem("gc.view", view); }, [view]);
+  React.useEffect(() => { localStorage.setItem("gc.flow", flow); }, [flow]);
+  React.useEffect(() => { localStorage.setItem("gc.result", JSON.stringify(result)); }, [result]);
+
+  // Edit mode wiring (Tweaks toggle)
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === "__activate_edit_mode") setTweaksOpen(true);
+      if (e.data?.type === "__deactivate_edit_mode") setTweaksOpen(false);
+    };
+    window.addEventListener("message", handler);
+    window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
+  const setTweak = (k, v) => {
+    const next = { ...tweaks, [k]: v };
+    setTweaks(next);
+    window.parent.postMessage({ type: "__edit_mode_set_keys", edits: { [k]: v } }, "*");
+  };
+
+  const pushToast = (t) => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts(ts => [...ts, { ...t, id }]);
+    setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), 4500);
+  };
+  const closeToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
+
+  const goHome = () => { setView("landing"); setResult(null); };
+  const goRegister = (f) => { setFlow(f || "team"); setView("register"); setResult(null); };
+
+  const handleSubmit = (r) => {
+    setResult(r);
+    setView("success");
+    const titles = { team: "Team registered", table: "Table reserved", kit: "Kit reserved" };
+    pushToast({ variant: "success", title: titles[r.kind], sub:
+      r.kind === "team" ? `Group ${r.groupNumber} created.` :
+      r.kind === "table" ? `${r.tableName}.` :
+      `${r.kitCount} item${r.kitCount > 1 ? "s" : ""} reserved.` });
+  };
+
+  const nextAfterSuccess = () => {
+    if (result?.kind === "team")  { goRegister("table"); }
+    else if (result?.kind === "table") { goRegister("kit"); }
+    else { goHome(); }
+  };
+
+  const liveRegs = 47 + (result?.kind === "team" ? 1 : 0);
+
+  const bodyClass = [
+    tweaks.density === "compact" ? "mode-compact" : "",
+    tweaks.sprig ? "" : "no-sprig",
+    tweaks.paperTone === "white" ? "paper-white" : "",
+    tweaks.gold === "strong" ? "gold-strong" : tweaks.gold === "subtle" ? "gold-subtle" : "",
+  ].filter(Boolean).join(" ");
+
+  return (
+    <div className={bodyClass}>
+      <TopBar onHome={goHome} onNav={(v) => v === "register" ? goRegister("team") : goHome()} active={view === "landing" ? "landing" : "register"} liveRegs={liveRegs}/>
+
+      {view === "landing" && <Landing onRegister={goRegister} onPickFlow={goRegister}/>}
+
+      {view === "register" && (
+        <RegistrationShell
+          flow={flow}
+          onFlow={setFlow}
+          onSubmit={handleSubmit}
+          onCancel={goHome}
+          toast={pushToast}/>
+      )}
+
+      {view === "success" && result && (
+        <main className="success-wrap">
+          <SuccessPanel
+            result={result}
+            onReturnHome={goHome}
+            onRegisterAnother={nextAfterSuccess}/>
+        </main>
+      )}
+
+      <Footer/>
+      <ToastStack toasts={toasts} onClose={closeToast}/>
+
+      {tweaksOpen && (
+        <div className="tweaks">
+          <div className="tw-head">
+            <span><span className="dot"/>Tweaks</span>
+            <button onClick={() => setTweaksOpen(false)} style={{background: "transparent", border: "none", color: "var(--on-green-70)", cursor: "pointer"}}>
+              <I.X size={16}/>
+            </button>
+          </div>
+          <div className="tw-body">
+            <div className="tw-field">
+              <span className="k">Density</span>
+              <div className="tw-seg">
+                {["comfortable", "compact"].map(v => (
+                  <button key={v} className={tweaks.density === v ? "on" : ""}
+                          onClick={() => setTweak("density", v)}>{v}</button>
+                ))}
+              </div>
+            </div>
+            <div className="tw-field">
+              <span className="k">Paper tone</span>
+              <div className="tw-seg">
+                {[["warm","warm paper"],["white","pure white"]].map(([v,l]) => (
+                  <button key={v} className={tweaks.paperTone === v ? "on" : ""}
+                          onClick={() => setTweak("paperTone", v)}>{l}</button>
+                ))}
+              </div>
+            </div>
+            <div className="tw-field">
+              <span className="k">Gold accent</span>
+              <div className="tw-seg">
+                {[["subtle","subtle"],["default","default"],["strong","strong"]].map(([v,l]) => (
+                  <button key={v} className={tweaks.gold === v ? "on" : ""}
+                          onClick={() => setTweak("gold", v)}>{l}</button>
+                ))}
+              </div>
+            </div>
+            <label className="tw-switch">
+              <input type="checkbox" checked={tweaks.sprig} onChange={e => setTweak("sprig", e.target.checked)}/>
+              Sprig watermark &amp; flourishes
+            </label>
+            <div style={{borderTop: "1px solid var(--ink-08)", paddingTop: 12, marginTop: 4}}>
+              <Button variant="secondary" block onClick={() => {
+                localStorage.removeItem("gc.view");
+                localStorage.removeItem("gc.flow");
+                localStorage.removeItem("gc.result");
+                setResult(null); setView("landing"); setFlow("team");
+              }}>
+                Reset demo state
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

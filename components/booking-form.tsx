@@ -1,231 +1,218 @@
 "use client";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "@/components/gc-toaster";
 
-import { useState, useEffect, useMemo } from "react";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MultiSelect, Option } from "@/components/ui/multi-select";
+const ChevronDown = () => (<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>);
+const Check = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>);
+const Loader = () => (<svg className="spin" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg>);
+const ArrowRight = () => (<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>);
+const AlertCircle = () => (<svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>);
+const PackageIcon = () => (<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>);
 
-interface TimeSlot {
-  id: string;
-  name: string;
+function GCSelect({ value, onChange, options, placeholder = "Select…", disabled, error }: {
+  value: string; onChange: (v: string) => void;
+  options: { value: string; label: string; hint?: string }[];
+  placeholder?: string; disabled?: boolean; error?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+  const selected = options.find(o => o.value === value);
+  return (
+    <div className="select-wrap" ref={ref}>
+      <button type="button" className={`select-trigger${open ? " open" : ""}${error ? " error" : ""}`}
+              disabled={disabled} onClick={() => setOpen(o => !o)}>
+        {selected ? <span>{selected.label}</span> : <span className="placeholder">{placeholder}</span>}
+        <ChevronDown />
+      </button>
+      {open && (
+        <div className="menu">
+          {options.map(o => (
+            <div key={o.value} className={`menu-item${o.value === value ? " selected" : ""}`}
+                 onClick={() => { onChange(o.value); setOpen(false); }}>
+              <span>{o.label}</span>
+              {o.value === value ? <Check size={14} /> : o.hint ? <span className="mono-hint">{o.hint}</span> : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
+
+function FormField({ label, required, help, error, children }: {
+  label?: string; required?: boolean; help?: React.ReactNode; error?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="field">
+      {label && <label className="lbl"><span>{label}{required && <span className="req">*</span>}</span></label>}
+      {children}
+      {help && !error && <div className="field-help">{help}</div>}
+      {error && <div className="field-error"><AlertCircle />{error}</div>}
+    </div>
+  );
+}
+
+interface InventoryItem { id: string; name: string; }
+interface TimeSlot { id: string; name: string; }
 
 export default function BookingForm() {
   const [teams, setTeams] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<any[]>([]);
-  const [inventory, setInventory] = useState<Option[]>([]);
-  
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedInventoryIds, setSelectedInventoryIds] = useState<string[]>([]);
-  
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [selectedTimeSlotId, setSelectedTimeSlotId] = useState("");
-  
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoadingForm, setIsLoadingForm] = useState(true);
-  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Fetch initial form data
   useEffect(() => {
-    async function fetchFormData() {
-      try {
-        const [resTeams, resInventory, resChallenges] = await Promise.all([
-          fetch("/api/teams"),
-          fetch("/api/inventory"),
-          fetch("/api/challenges")
-        ]);
-        
-        if (resTeams.ok) setTeams((await resTeams.json()).teams || []);
-        if (resChallenges.ok) setChallenges((await resChallenges.json()).challenges || []);
-        if (resInventory.ok) {
-          const data = await resInventory.json();
-          setInventory((data.inventory || []).map((i: any) => ({ label: i.name, value: i.id })));
-        }
-      } catch (error) {
-        toast.error("Error loading form data");
-      } finally {
+    Promise.all([fetch("/api/teams"), fetch("/api/inventory"), fetch("/api/challenges")])
+      .then(async ([rt, ri, rc]) => {
+        if (rt.ok) setTeams((await rt.json()).teams || []);
+        if (ri.ok) setInventory((await ri.json()).inventory || []);
+        if (rc.ok) setChallenges((await rc.json()).challenges || []);
         setIsLoadingForm(false);
-      }
-    }
-    fetchFormData();
+      }).catch(() => { toast({ variant: "danger", title: "Failed to load data." }); setIsLoadingForm(false); });
   }, []);
 
-  const selectedTeam = useMemo(() => teams.find(t => t.id === selectedTeamId), [teams, selectedTeamId]);
-  const teamChallengeName = useMemo(() => {
-    if (!selectedTeam || !selectedTeam.challenge || selectedTeam.challenge.length === 0) return "N/A";
-    const cId = selectedTeam.challenge[0];
-    return challenges.find(c => c.id === cId)?.name || "Unknown";
-  }, [selectedTeam, challenges]);
-
-  // Fetch available time slots when inventory selection changes
   useEffect(() => {
-    if (selectedInventoryIds.length === 0) {
-      setTimeSlots([]);
+    if (selectedInventoryIds.length === 0) { setTimeSlots([]); setSelectedTimeSlotId(""); return; }
+    const id = setTimeout(async () => {
+      setIsLoadingSlots(true);
       setSelectedTimeSlotId("");
-      return;
-    }
-
-    async function fetchAvailability() {
-      setIsLoadingTimeSlots(true);
-      setSelectedTimeSlotId(""); // Reset time slot on new item selection
       try {
         const res = await fetch(`/api/availability?itemIds=${selectedInventoryIds.join(",")}`);
-        const data = await res.json();
-        if (res.ok) {
-          setTimeSlots(data.availableTimeSlots || []);
-        } else {
-          toast.error("Failed to load time slots");
-        }
-      } catch (error) {
-        toast.error("Error checking availability");
-      } finally {
-        setIsLoadingTimeSlots(false);
-      }
-    }
-    
-    // Simple debounce to prevent excessive fetching while clicking multiple items
-    const timeoutId = setTimeout(() => {
-      fetchAvailability();
+        if (res.ok) setTimeSlots((await res.json()).availableTimeSlots || []);
+      } catch { toast({ variant: "danger", title: "Error checking availability." }); }
+      finally { setIsLoadingSlots(false); }
     }, 300);
-    return () => clearTimeout(timeoutId);
-    
+    return () => clearTimeout(id);
   }, [selectedInventoryIds]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const selectedTeam = teams.find(t => t.id === selectedTeamId);
+  const challengeName = selectedTeam?.challenge?.[0]
+    ? (challenges.find(c => c.id === selectedTeam.challenge[0])?.name || "") : "";
 
-    if (!selectedTeamId || selectedInventoryIds.length === 0 || !selectedTimeSlotId) {
-      toast.error("Please fill out all fields.");
+  const toggleKit = (id: string) => {
+    setSelectedInventoryIds(ks => ks.includes(id) ? ks.filter(x => x !== id) : [...ks, id]);
+    setErrors(x => ({ ...x, kits: "" }));
+  };
+
+  const handleSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    const e: Record<string, string> = {};
+    if (!selectedTeamId) e.teamId = "Pick a team.";
+    if (selectedInventoryIds.length === 0) e.kits = "Pick at least one item.";
+    if (!selectedTimeSlotId) e.slot = "Pick a time slot.";
+    setErrors(e);
+    if (Object.keys(e).filter(k => e[k]).length) {
+      toast({ variant: "danger", title: "Almost there.", sub: "Check the highlighted fields." });
       return;
     }
-
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
       const res = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId: selectedTeamId,
-          inventoryIds: selectedInventoryIds,
-          timeSlotId: selectedTimeSlotId,
-        }),
+        body: JSON.stringify({ teamId: selectedTeamId, inventoryIds: selectedInventoryIds, timeSlotId: selectedTimeSlotId }),
       });
-
+      const data = await res.json();
       if (res.ok) {
-        toast.success("Kit reserved successfully!");
-        setSelectedTeamId("");
-        setSelectedInventoryIds([]);
-        setSelectedTimeSlotId("");
+        toast({ variant: "success", title: "Kit reserved!", sub: `${selectedInventoryIds.length} item${selectedInventoryIds.length > 1 ? "s" : ""} reserved.` });
+        setSelectedTeamId(""); setSelectedInventoryIds([]); setSelectedTimeSlotId(""); setErrors({});
       } else {
-        const data = await res.json();
-        toast.error(data.error || "Failed to make reservation");
+        toast({ variant: "danger", title: "Error", sub: data.error || "Failed to reserve kit." });
       }
-    } catch (error) {
-      toast.error("Network error. Please try again.");
+    } catch {
+      toast({ variant: "danger", title: "Network error.", sub: "Please try again." });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  if (isLoadingForm) return <div className="text-center py-8 text-gray-400"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>;
+  if (isLoadingForm) return <div style={{ textAlign: "center", padding: "40px 0", color: "var(--ink-50)" }}><Loader /></div>;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-2">
-        <Label className="text-gray-300">Team <span className="text-red-400">*</span></Label>
-        <Select value={selectedTeamId} onValueChange={(val) => setSelectedTeamId(val || "")} required>
-          <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-indigo-500">
-            <SelectValue placeholder="Select your team">
-              {selectedTeamId ? teams.find(t => t.id === selectedTeamId)?.name : undefined}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-neutral-900 border-white/10 text-white">
-            {teams.map((t) => (
-              <SelectItem key={t.id} value={t.id} className="focus:bg-indigo-600 focus:text-white">{t.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <form onSubmit={handleSubmit} noValidate>
+      <FormField label="Team" required error={errors.teamId}>
+        <GCSelect value={selectedTeamId}
+                  onChange={v => { setSelectedTeamId(v); setErrors(x => ({ ...x, teamId: "" })); }}
+                  options={teams.map(t => ({ value: t.id, label: t.name, hint: t.group }))}
+                  error={!!errors.teamId}
+                  placeholder="Select your team" />
+      </FormField>
 
       {selectedTeam && (
-        <div className="p-4 bg-white/5 rounded-md border border-white/10 space-y-3">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-gray-500 text-xs">Project Name</Label>
-              <div className="text-sm text-gray-200">{selectedTeam.project || "N/A"}</div>
-            </div>
-            <div>
-              <Label className="text-gray-500 text-xs">Group Number</Label>
-              <div className="text-sm text-gray-200">{selectedTeam.group || "N/A"}</div>
-            </div>
-            <div className="col-span-2">
-              <Label className="text-gray-500 text-xs">Challenge</Label>
-              <div className="text-sm text-gray-200">{teamChallengeName}</div>
-            </div>
-          </div>
+        <div className="summary">
+          <div><div className="k">Project</div><div className="v">{selectedTeam.project || "—"}</div></div>
+          <div><div className="k">Group</div><div className="v mono">{selectedTeam.group || "—"}</div></div>
+          <div className="cell-full"><div className="k">Challenge</div><div className="v">{challengeName || "—"}</div></div>
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label className="text-gray-300">Inventory Items (Kits) <span className="text-red-400">*</span></Label>
-        <MultiSelect
-          options={inventory}
-          selected={selectedInventoryIds}
-          onChange={setSelectedInventoryIds}
-          placeholder="Select items to borrow..."
-        />
-      </div>
+      <FormField label={`Inventory (${selectedInventoryIds.length} selected)`} required
+                 help="Tap to add. You can mix and match."
+                 error={errors.kits}>
+        <div className="kit-list">
+          {inventory.map(item => {
+            const selected = selectedInventoryIds.includes(item.id);
+            return (
+              <div key={item.id} className={`kit-card${selected ? " selected" : ""}`} onClick={() => toggleKit(item.id)}>
+                <div className="ico"><PackageIcon /></div>
+                <div className="main">
+                  <div className="title">{item.name}</div>
+                </div>
+                <div className="check">{selected && <Check size={14} />}</div>
+              </div>
+            );
+          })}
+        </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label className="text-gray-300">Day/Time Slot <span className="text-red-400">*</span></Label>
-        <Select
-          value={selectedTimeSlotId}
-          onValueChange={(val) => setSelectedTimeSlotId(val || "")}
-          disabled={selectedInventoryIds.length === 0 || isLoadingTimeSlots || timeSlots.length === 0}
-          required
-        >
-          <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-indigo-500">
-            <SelectValue
-              placeholder={
-                selectedInventoryIds.length === 0
-                  ? "Select items first"
-                  : isLoadingTimeSlots
-                  ? "Checking availability..."
-                  : timeSlots.length === 0
-                  ? "No slots available for these items"
-                  : "Select a time slot"
-              }
-            >
-              {selectedTimeSlotId ? timeSlots.find(slot => slot.id === selectedTimeSlotId)?.name : undefined}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-neutral-900 border-white/10 text-white">
-            {timeSlots.map((slot) => (
-              <SelectItem key={slot.id} value={slot.id} className="focus:bg-indigo-600 focus:text-white">
-                {slot.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Button
-        type="submit"
-        disabled={isSubmitting || !selectedTeamId || selectedInventoryIds.length === 0 || !selectedTimeSlotId}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-all duration-200"
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Reserving...
-          </>
+      <FormField label="Time slot" required
+                 help={selectedInventoryIds.length === 0 ? "Pick items first to see availability." : isLoadingSlots ? "Checking availability…" : "Your kit is reserved for the duration of this block."}
+                 error={errors.slot}>
+        {isLoadingSlots ? (
+          <div style={{ padding: "20px 0", color: "var(--ink-50)" }}><Loader /></div>
+        ) : timeSlots.length === 0 && selectedInventoryIds.length > 0 ? (
+          <div style={{ color: "var(--ink-50)", fontStyle: "italic", fontSize: 14, padding: "12px 0" }}>No available slots for these items.</div>
         ) : (
-          "Reserve Kit"
+          <div className="slots">
+            {timeSlots.map(s => (
+              <button type="button" key={s.id}
+                      className={`slot-tile${selectedTimeSlotId === s.id ? " selected" : ""}`}
+                      disabled={selectedInventoryIds.length === 0}
+                      onClick={() => { setSelectedTimeSlotId(s.id); setErrors(x => ({ ...x, slot: "" })); }}>
+                <div className="day">{s.name}</div>
+                <div className="avail">Available</div>
+              </button>
+            ))}
+          </div>
         )}
-      </Button>
+      </FormField>
+
+      <div className="form-actions">
+        <div className="left">
+          {selectedInventoryIds.length > 0 && (
+            <span className="badge badge-sprig"><span className="dot" />{selectedInventoryIds.length} item{selectedInventoryIds.length > 1 ? "s" : ""} in bundle</span>
+          )}
+        </div>
+        <div className="right">
+          <button type="submit" className="btn btn-primary"
+                  disabled={submitting || !selectedTeamId || selectedInventoryIds.length === 0 || !selectedTimeSlotId}>
+            {submitting ? <><Loader /> Reserving…</> : <>Reserve kit <ArrowRight /></>}
+          </button>
+        </div>
+      </div>
     </form>
   );
 }

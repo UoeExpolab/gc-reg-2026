@@ -1,0 +1,80 @@
+/* Exeter Grand Challenges — Foundation tokens */
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/SourceSerif4-Variable.woff2") format("woff2-variations");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./fonts/Inter-Variable.woff2") format("woff2-variations");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/JetBrainsMono-Variable.woff2") format("woff2-variations");
+}
+
+:root {
+  --exeter-green:        #003c3c;
+  --exeter-green-deep:   #00261e;
+  --exeter-green-dark:   #001a15;
+  --exeter-sprig:        #007a5a;
+  --exeter-sprig-soft:   #4ba88c;
+  --exeter-gold:         #c5a572;
+  --exeter-gold-deep:    #8f7446;
+  --exeter-gold-soft:    #e4d5b5;
+
+  --paper:               #f7f4ec;
+  --paper-deep:          #ede7d6;
+  --paper-warm:          #efe8d4;
+  --white:               #ffffff;
+  --ink:                 #111817;
+  --ink-80:              rgba(17, 24, 23, 0.80);
+  --ink-70:              rgba(17, 24, 23, 0.70);
+  --ink-60:              rgba(17, 24, 23, 0.60);
+  --ink-50:              rgba(17, 24, 23, 0.50);
+  --ink-30:              rgba(17, 24, 23, 0.30);
+  --ink-10:              rgba(17, 24, 23, 0.10);
+  --ink-08:              rgba(17, 24, 23, 0.08);
+  --ink-04:              rgba(17, 24, 23, 0.04);
+
+  --on-green:            #f7f4ec;
+  --on-green-80:         rgba(247, 244, 236, 0.80);
+  --on-green-70:         rgba(247, 244, 236, 0.70);
+  --on-green-50:         rgba(247, 244, 236, 0.50);
+  --on-green-30:         rgba(247, 244, 236, 0.30);
+  --on-green-15:         rgba(247, 244, 236, 0.15);
+  --on-green-10:         rgba(247, 244, 236, 0.10);
+
+  --success:             #2f6b4a;
+  --success-bg:          #e5efe8;
+  --warning:             #9a7c23;
+  --warning-bg:          #f5efdb;
+  --danger:              #b54535;
+  --danger-bg:           #f5e0dc;
+
+  --font-serif:  "Source Serif 4", "Charter", "Iowan Old Style", Georgia, serif;
+  --font-sans:   "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono:   "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-sm: 0 1px 2px rgba(17, 24, 23, 0.06);
+  --shadow-md: 0 4px 12px rgba(17, 24, 23, 0.08);
+  --shadow-lg: 0 16px 40px rgba(17, 24, 23, 0.12);
+  --shadow-focus: 0 0 0 3px rgba(0, 122, 90, 0.35);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur:      200ms;
+  --dur-slow: 320ms;
+}

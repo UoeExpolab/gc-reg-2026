@@ -1,173 +1,243 @@
 "use client";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "@/components/gc-toaster";
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MultiSelect, Option } from "@/components/ui/multi-select";
+// --- Inline SVG icons ---
+const ChevronDown = () => (
+  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+);
+const Check = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+);
+const Loader = () => (
+  <svg className="spin" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg>
+);
+const XIcon = () => (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+);
+const Plus = () => (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+);
+const ArrowRight = () => (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+);
+const AlertCircle = () => (
+  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+);
+
+// --- GC Select component ---
+function GCSelect({ value, onChange, options, placeholder = "Select…", disabled, error }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string; hint?: string }[];
+  placeholder?: string;
+  disabled?: boolean;
+  error?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+  const selected = options.find(o => o.value === value);
+  return (
+    <div className="select-wrap" ref={ref}>
+      <button type="button" className={`select-trigger${open ? " open" : ""}${error ? " error" : ""}`}
+              disabled={disabled} onClick={() => setOpen(o => !o)}>
+        {selected ? <span>{selected.label}</span> : <span className="placeholder">{placeholder}</span>}
+        <ChevronDown />
+      </button>
+      {open && (
+        <div className="menu">
+          {options.map(o => (
+            <div key={o.value} className={`menu-item${o.value === value ? " selected" : ""}`}
+                 onClick={() => { onChange(o.value); setOpen(false); }}>
+              <span>{o.label}</span>
+              {o.value === value ? <Check size={14} /> : o.hint ? <span className="mono-hint">{o.hint}</span> : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- FormField wrapper ---
+function FormField({ label, required, optional, help, helpAccent, error, children }: {
+  label?: string; required?: boolean; optional?: boolean;
+  help?: React.ReactNode; helpAccent?: boolean; error?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="field">
+      {label && (
+        <label className="lbl">
+          <span>{label}{required && <span className="req">*</span>}</span>
+          {optional && <span className="opt">Optional</span>}
+        </label>
+      )}
+      {children}
+      {help && !error && <div className={`field-help${helpAccent ? " accent" : ""}`}>{help}</div>}
+      {error && <div className="field-error"><AlertCircle />{error}</div>}
+    </div>
+  );
+}
 
 export default function TeamRegistrationForm() {
-  const [students, setStudents] = useState<Option[]>([]);
+  const [students, setStudents] = useState<{ value: string; label: string }[]>([]);
   const [challenges, setChallenges] = useState<{ id: string; name: string; abbreviation: string }[]>([]);
-  
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [roster, setRoster] = useState<string[]>([]);
+  const [pick, setPick] = useState("");
   const [teamName, setTeamName] = useState("");
-  const [projectName, setProjectName] = useState("");
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
-  const [projectDescription, setProjectDescription] = useState("");
-
+  const [projectName, setProjectName] = useState("");
+  const [projectDesc, setProjectDesc] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const [resStudents, resChallenges] = await Promise.all([
-          fetch("/api/students"),
-          fetch("/api/challenges")
-        ]);
-        
-        if (resStudents.ok) {
-          const data = await resStudents.json();
-          setStudents((data.students || []).map((s: any) => ({ label: s.name, value: s.id })));
-        }
-        
-        if (resChallenges.ok) {
-          const data = await resChallenges.json();
-          setChallenges(data.challenges || []);
-        }
-      } catch (error) {
-        toast.error("Failed to load form data");
-      } finally {
-        setIsLoading(false);
+    Promise.all([fetch("/api/students"), fetch("/api/challenges")]).then(async ([rs, rc]) => {
+      if (rs.ok) {
+        const d = await rs.json();
+        setStudents((d.students || []).map((s: any) => ({ value: s.id, label: s.name })));
       }
-    }
-    fetchData();
+      if (rc.ok) {
+        const d = await rc.json();
+        setChallenges(d.challenges || []);
+      }
+      setIsLoading(false);
+    }).catch(() => { toast({ variant: "danger", title: "Failed to load form data." }); setIsLoading(false); });
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!teamName || selectedStudents.length === 0 || !selectedChallengeId || !projectName) {
-      toast.error("Please fill out all required fields.");
+  const challengeObj = challenges.find(c => c.id === selectedChallengeId);
+  const availableStudents = students.filter(s => !roster.includes(s.value));
+
+  const addStudent = () => {
+    if (!pick) return;
+    setRoster([...roster, pick]);
+    setPick("");
+    setErrors(e => ({ ...e, roster: "" }));
+  };
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!teamName.trim()) e.teamName = "Give your team a name.";
+    if (roster.length === 0) e.roster = "Add at least one teammate.";
+    if (!selectedChallengeId) e.challenge = "Pick a Challenge track.";
+    if (!projectName.trim()) e.projectName = "What are you building?";
+    return e;
+  };
+
+  const handleSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).filter(k => e[k]).length) {
+      toast({ variant: "danger", title: "Something's missing.", sub: "Check the highlighted fields." });
       return;
     }
-
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamName,
-          studentIds: selectedStudents,
-          challengeId: selectedChallengeId,
-          projectName,
-          projectDescription
-        }),
+        body: JSON.stringify({ teamName, studentIds: roster, challengeId: selectedChallengeId, projectName, projectDescription: projectDesc }),
       });
-
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
-        toast.success(`Team registered! Group Number: ${data.groupNumber}`);
-        
-        // Reset form
-        setTeamName("");
-        setSelectedStudents([]);
-        setProjectName("");
-        setSelectedChallengeId("");
-        setProjectDescription("");
+        toast({ variant: "success", title: "Team registered!", sub: `Group ${data.groupNumber} created.` });
+        setTeamName(""); setRoster([]); setPick(""); setSelectedChallengeId(""); setProjectName(""); setProjectDesc(""); setErrors({});
       } else {
-        const data = await res.json();
-        toast.error(data.error || "Failed to register team");
+        toast({ variant: "danger", title: "Error", sub: data.error || "Failed to register team." });
       }
-    } catch (error) {
-      toast.error("Network error. Please try again.");
+    } catch {
+      toast({ variant: "danger", title: "Network error.", sub: "Please try again." });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  if (isLoading) return <div className="text-center py-8 text-gray-400"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>;
-
-  const selectedChallenge = challenges.find(c => c.id === selectedChallengeId);
+  if (isLoading) return <div style={{ textAlign: "center", padding: "40px 0", color: "var(--ink-50)" }}><Loader /></div>;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-2">
-        <Label className="text-gray-300">Students <span className="text-red-400">*</span></Label>
-        <MultiSelect
-          options={students}
-          selected={selectedStudents}
-          onChange={setSelectedStudents}
-          placeholder="Select students..."
-        />
+    <form onSubmit={handleSubmit} noValidate>
+      <div className="field-row">
+        <FormField label="Team name" required error={errors.teamName}>
+          <input className={`input${errors.teamName ? " error" : ""}`}
+                 value={teamName}
+                 onChange={e => { setTeamName(e.target.value); setErrors(x => ({ ...x, teamName: "" })); }}
+                 placeholder="The Kelpies" />
+        </FormField>
+        <FormField label="Challenge" required
+                   help={challengeObj ? <>Group prefix will be <strong>{challengeObj.abbreviation}</strong></> : "Five tracks, one team."}
+                   helpAccent={!!challengeObj}
+                   error={errors.challenge}>
+          <GCSelect value={selectedChallengeId}
+                    onChange={v => { setSelectedChallengeId(v); setErrors(x => ({ ...x, challenge: "" })); }}
+                    options={challenges.map(c => ({ value: c.id, label: c.name, hint: c.abbreviation }))}
+                    error={!!errors.challenge}
+                    placeholder="Pick a track" />
+        </FormField>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-gray-300">Team Name <span className="text-red-400">*</span></Label>
-        <Input
-          value={teamName}
-          onChange={(e) => setTeamName(e.target.value)}
-          placeholder="Awesome Team"
-          required
-          className="bg-white/5 border-white/10 text-white"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-gray-300">Challenge <span className="text-red-400">*</span></Label>
-        <Select value={selectedChallengeId} onValueChange={(val) => setSelectedChallengeId(val || "")} required>
-          <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-indigo-500">
-            <SelectValue placeholder="Select a challenge">
-              {selectedChallenge?.name}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="bg-neutral-900 border-white/10 text-white">
-            {challenges.map((c) => (
-              <SelectItem key={c.id} value={c.id} className="focus:bg-indigo-600 focus:text-white">{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        {selectedChallenge && (
-          <p className="text-xs text-indigo-300 mt-1">
-            Your Group Number will be auto-generated with prefix: <strong>{selectedChallenge.abbreviation}</strong>
-          </p>
+      <FormField label={`Team members (${roster.length})`} required help="Select everyone who will be on this team." error={errors.roster}>
+        {roster.length === 0 ? (
+          <div className="roster-empty">No team members yet — add someone below.</div>
+        ) : (
+          <div className="roster">
+            {roster.map((id, i) => {
+              const s = students.find(x => x.value === id);
+              return (
+                <div key={id} className={`roster-row`}>
+                  <div className="idx">{String(i + 1).padStart(2, "0")}</div>
+                  <div>
+                    <span className="name">{s?.label}</span>
+                  </div>
+                  <button type="button" className="rm" onClick={() => setRoster(roster.filter(x => x !== id))} aria-label="Remove">
+                    <XIcon />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         )}
-      </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: 8 }}>
+          <GCSelect value={pick} onChange={setPick}
+                    options={availableStudents}
+                    placeholder={availableStudents.length ? "Find a student…" : "Everyone's on the team"}
+                    disabled={availableStudents.length === 0} />
+          <button type="button" className="btn btn-secondary" disabled={!pick} onClick={addStudent}>
+            <Plus /> Add
+          </button>
+        </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label className="text-gray-300">Project Name <span className="text-red-400">*</span></Label>
-        <Input
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
-          placeholder="Project X"
-          required
-          className="bg-white/5 border-white/10 text-white"
-        />
-      </div>
+      <FormField label="Project name" required error={errors.projectName}>
+        <input className={`input${errors.projectName ? " error" : ""}`}
+               value={projectName}
+               onChange={e => { setProjectName(e.target.value); setErrors(x => ({ ...x, projectName: "" })); }}
+               placeholder="Urban foraging map" />
+      </FormField>
 
-      <div className="space-y-2">
-        <Label className="text-gray-300">Project Description</Label>
-        <Textarea
-          value={projectDescription}
-          onChange={(e) => setProjectDescription(e.target.value)}
-          placeholder="Describe your project..."
-          className="bg-white/5 border-white/10 text-white min-h-[100px]"
-        />
-      </div>
+      <FormField label="Project description" optional help={`${projectDesc.length}/400 · What are you building, and why does it matter?`}>
+        <textarea value={projectDesc} maxLength={400}
+                  onChange={e => setProjectDesc(e.target.value)}
+                  placeholder="A few sentences on what you're making and who it's for…" />
+      </FormField>
 
-      <Button
-        type="submit"
-        disabled={isSubmitting || !teamName || selectedStudents.length === 0 || !selectedChallengeId || !projectName}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-      >
-        {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registering...</> : "Register Team"}
-      </Button>
+      <div className="form-actions">
+        <div className="left">
+          <span className="badge badge-outline"><span className="dot" />Draft · not yet submitted</span>
+        </div>
+        <div className="right">
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? <><Loader /> Registering…</> : <>Register team <ArrowRight /></>}
+          </button>
+        </div>
+      </div>
     </form>
   );
 }
