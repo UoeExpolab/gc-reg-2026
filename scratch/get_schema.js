@@ -2,10 +2,10 @@ const https = require('https');
 
 const options = {
   hostname: 'api.airtable.com',
-  path: '/v0/meta/bases/appf8u8BhpKWEzENO/tables',
+  path: `/v0/meta/bases/${process.env.AIRTABLE_BASE_ID}/tables`,
   method: 'GET',
   headers: {
-    'Authorization': 'Bearer patwZ3H9FLcpZxG2v.28f9abc5d8ab039c0948781144bf8f9c1a96938cf9f599d29d2dcc1e71f8036d'
+    'Authorization': `Bearer ${process.env.AIRTABLE_PAT}`
   }
 };
 

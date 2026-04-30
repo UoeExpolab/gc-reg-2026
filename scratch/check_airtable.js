@@ -1,6 +1,6 @@
 const Airtable = require('airtable');
 
-const base = new Airtable({ apiKey: "patwZ3H9FLcpZxG2v.28f9abc5d8ab039c0948781144bf8f9c1a96938cf9f599d29d2dcc1e71f8036d" }).base("appf8u8BhpKWEzENO");
+const base = new Airtable({ apiKey: process.env.AIRTABLE_PAT }).base(process.env.AIRTABLE_BASE_ID);
 
 async function checkTable(tableName) {
   try {
