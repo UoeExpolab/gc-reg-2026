@@ -10,7 +10,9 @@ export async function GET() {
     const tables = records.map(record => ({
       id: record.id,
       name: record.get('Name') as string,
-      reserved: (record.get('Table Reservations') as string[])?.length > 0
+      reserved: (record.get('Table Reservations') as string[])?.length > 0,
+      notes: record.get('Notes') as string || "",
+      reservedChallenge: record.get('Reserved Challenge') as string[] || []
     }));
 
     return NextResponse.json({ tables });

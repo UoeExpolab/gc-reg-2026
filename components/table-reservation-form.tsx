@@ -84,6 +84,14 @@ export default function TableReservationForm() {
     ? (challenges.find(c => c.id === selectedTeam.challenge[0])?.name || "")
     : "";
 
+  const getReservedChallengeNames = (challengeIds: string[]) => {
+    if (!challengeIds || challengeIds.length === 0) return "";
+    return challengeIds
+      .map(id => challenges.find(c => c.id === id)?.name)
+      .filter(Boolean)
+      .join(", ");
+  };
+
   // Group tables by name prefix for zone display (if Name starts with number, zone is unknown)
   const zones = [...new Set(tables.map(t => (t.name?.match(/^[^0-9]*/)?.[0]?.trim()) || "General"))];
 
@@ -155,6 +163,10 @@ export default function TableReservationForm() {
                   <div className="tag">{t.reserved ? "Taken" : selectedTableId === t.id ? "Selected" : ""}</div>
                   <div className="num">{t.name}</div>
                   <div className="loc">6 seats</div>
+                  {t.notes && <div className="notes">{t.notes}</div>}
+                  {t.reservedChallenge && t.reservedChallenge.length > 0 && (
+                    <div className="reserved-challenge">Reserved: {getReservedChallengeNames(t.reservedChallenge)}</div>
+                  )}
                 </button>
               ))}
             </div>

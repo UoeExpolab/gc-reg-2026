@@ -215,6 +215,10 @@ textarea{height:auto;min-height:104px;padding:12px 14px;line-height:1.55;resize:
 .table-tile .tag{position:absolute;top:8px;right:8px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:var(--ink-50);}
 .table-tile.reserved .tag{color:var(--danger);}
 .table-tile.selected .tag{color:var(--exeter-gold);}
+.table-tile .notes{font-size:12px;color:var(--ink-60);line-height:1.4;margin-top:2px;}
+.table-tile.selected .notes{color:var(--on-green-70);}
+.table-tile .reserved-challenge{font-size:10px;letter-spacing:0.05em;color:var(--ink-50);font-weight:600;padding-top:4px;border-top:1px solid var(--ink-10);margin-top:4px;}
+.table-tile.selected .reserved-challenge{color:var(--on-green-50);border-color:var(--on-green-15);}
 .legend{display:flex;gap:18px;margin-top:12px;font-size:11px;color:var(--ink-60);}
 .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle;border:1px solid var(--ink-10);}
 .legend .swatch.avail{background:var(--white);}
