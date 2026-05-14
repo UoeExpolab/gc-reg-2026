@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/gc-toaster";
+import { generateFormVerificationToken } from "@/lib/utils";
 
 const ChevronDown = () => (<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>);
 const Check = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>);
@@ -68,8 +69,12 @@ export default function TableReservationForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [formToken, setFormToken] = useState("");
 
   useEffect(() => {
+    // Generate form verification token for security
+    setFormToken(generateFormVerificationToken());
+
     Promise.all([fetch("/api/teams"), fetch("/api/tables"), fetch("/api/challenges")])
       .then(async ([rt, rtbl, rc]) => {
         if (rt.ok) setTeams((await rt.json()).teams || []);
@@ -109,7 +114,10 @@ export default function TableReservationForm() {
     try {
       const res = await fetch("/api/table-reservations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-form-verification": formToken
+        },
         body: JSON.stringify({ teamId: selectedTeamId, tableId: selectedTableId }),
       });
       const data = await res.json();
@@ -117,6 +125,8 @@ export default function TableReservationForm() {
         const tableName = tables.find(t => t.id === selectedTableId)?.name;
         toast({ variant: "success", title: "Table reserved!", sub: tableName });
         setSelectedTeamId(""); setSelectedTableId(""); setErrors({});
+        // Generate new token for next submission
+        setFormToken(generateFormVerificationToken());
       } else {
         toast({ variant: "danger", title: "Error", sub: data.error || "Failed to reserve table." });
       }

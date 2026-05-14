@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/gc-toaster";
+import { generateFormVerificationToken } from "@/lib/utils";
 
 // --- Inline SVG icons ---
 const ChevronDown = () => (
@@ -97,8 +98,12 @@ export default function TeamRegistrationForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [formToken, setFormToken] = useState("");
 
   useEffect(() => {
+    // Generate form verification token for security
+    setFormToken(generateFormVerificationToken());
+
     Promise.all([fetch("/api/students"), fetch("/api/challenges")]).then(async ([rs, rc]) => {
       if (rs.ok) {
         const d = await rs.json();
@@ -143,13 +148,18 @@ export default function TeamRegistrationForm() {
     try {
       const res = await fetch("/api/teams", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-form-verification": formToken
+        },
         body: JSON.stringify({ teamName, studentIds: roster, challengeId: selectedChallengeId, projectName, projectDescription: projectDesc }),
       });
       const data = await res.json();
       if (res.ok) {
         toast({ variant: "success", title: "Team registered!", sub: `Group ${data.groupNumber} created.` });
         setTeamName(""); setRoster([]); setPick(""); setSelectedChallengeId(""); setProjectName(""); setProjectDesc(""); setErrors({});
+        // Generate new token for next submission
+        setFormToken(generateFormVerificationToken());
       } else {
         toast({ variant: "danger", title: "Error", sub: data.error || "Failed to register team." });
       }

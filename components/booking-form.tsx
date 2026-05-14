@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/gc-toaster";
+import { generateFormVerificationToken } from "@/lib/utils";
 
 const ChevronDown = () => (<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>);
 const Check = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>);
@@ -73,8 +74,12 @@ export default function BookingForm() {
   const [isLoadingForm, setIsLoadingForm] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [formToken, setFormToken] = useState("");
 
   useEffect(() => {
+    // Generate form verification token for security
+    setFormToken(generateFormVerificationToken());
+
     Promise.all([fetch("/api/teams"), fetch("/api/inventory"), fetch("/api/challenges")])
       .then(async ([rt, ri, rc]) => {
         if (rt.ok) setTeams((await rt.json()).teams || []);
@@ -122,13 +127,18 @@ export default function BookingForm() {
     try {
       const res = await fetch("/api/reservations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-form-verification": formToken
+        },
         body: JSON.stringify({ teamId: selectedTeamId, inventoryIds: selectedInventoryIds, timeSlotId: selectedTimeSlotId }),
       });
       const data = await res.json();
       if (res.ok) {
         toast({ variant: "success", title: "Kit reserved!", sub: `${selectedInventoryIds.length} item${selectedInventoryIds.length > 1 ? "s" : ""} reserved.` });
         setSelectedTeamId(""); setSelectedInventoryIds([]); setSelectedTimeSlotId(""); setErrors({});
+        // Generate new token for next submission
+        setFormToken(generateFormVerificationToken());
       } else {
         toast({ variant: "danger", title: "Error", sub: data.error || "Failed to reserve kit." });
       }
