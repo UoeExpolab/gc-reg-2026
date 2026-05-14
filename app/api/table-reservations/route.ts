@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import base from '@/lib/airtable';
+import { validateBrowserRequest } from '@/lib/utils';
 
 export async function POST(request: Request) {
+  // Validate that this is a legitimate browser request
+  if (!validateBrowserRequest(request)) {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 403 });
+  }
+
   try {
     const { teamId, tableId } = await request.json();
 
