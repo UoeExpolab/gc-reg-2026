@@ -27,23 +27,34 @@ const AlertCircle = () => (
 );
 
 // --- GC Select component ---
-function GCSelect({ value, onChange, options, placeholder = "Select…", disabled, error }: {
+function GCSelect({ value, onChange, options, placeholder = "Select…", disabled, error, searchable }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string; hint?: string }[];
   placeholder?: string;
   disabled?: boolean;
   error?: boolean;
+  searchable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setQuery("");
+      return;
+    }
     const handler = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
   const selected = options.find(o => o.value === value);
+  const filteredOptions = searchable && query 
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase())) 
+    : options;
+
   return (
     <div className="select-wrap" ref={ref}>
       <button type="button" className={`select-trigger${open ? " open" : ""}${error ? " error" : ""}`}
@@ -52,14 +63,31 @@ function GCSelect({ value, onChange, options, placeholder = "Select…", disable
         <ChevronDown />
       </button>
       {open && (
-        <div className="menu">
-          {options.map(o => (
-            <div key={o.value} className={`menu-item${o.value === value ? " selected" : ""}`}
-                 onClick={() => { onChange(o.value); setOpen(false); }}>
-              <span>{o.label}</span>
-              {o.value === value ? <Check size={14} /> : o.hint ? <span className="mono-hint">{o.hint}</span> : null}
+        <div className="menu" style={searchable ? { display: 'flex', flexDirection: 'column', padding: 0 } : {}}>
+          {searchable && (
+            <div style={{ padding: '8px', borderBottom: '1px solid var(--border)' }}>
+              <input
+                type="text"
+                autoFocus
+                className="input"
+                style={{ width: '100%', padding: '6px 10px', minHeight: '32px' }}
+                placeholder="Search..."
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+              />
             </div>
-          ))}
+          )}
+          <div style={searchable ? { maxHeight: '200px', overflowY: 'auto' } : {}}>
+            {filteredOptions.length > 0 ? filteredOptions.map(o => (
+              <div key={o.value} className={`menu-item${o.value === value ? " selected" : ""}`}
+                   onClick={() => { onChange(o.value); setOpen(false); }}>
+                <span>{o.label}</span>
+                {o.value === value ? <Check size={14} /> : o.hint ? <span className="mono-hint">{o.hint}</span> : null}
+              </div>
+            )) : (
+              <div className="menu-item" style={{ opacity: 0.5, pointerEvents: 'none' }}>No results</div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -182,7 +210,7 @@ export default function TeamRegistrationForm() {
                  placeholder="The Kelpies" />
         </FormField>
         <FormField label="Challenge" required
-                   help={challengeObj ? <>Group prefix will be <strong>{challengeObj.abbreviation}</strong></> : "Five tracks, one team."}
+                   help={challengeObj ? <>Group prefix will be <strong>{challengeObj.abbreviation}</strong></> : undefined}
                    helpAccent={!!challengeObj}
                    error={errors.challenge}>
           <GCSelect value={selectedChallengeId}
@@ -218,7 +246,8 @@ export default function TeamRegistrationForm() {
           <GCSelect value={pick} onChange={setPick}
                     options={availableStudents}
                     placeholder={availableStudents.length ? "Find a student…" : "Everyone's on the team"}
-                    disabled={availableStudents.length === 0} />
+                    disabled={availableStudents.length === 0}
+                    searchable={true} />
           <button type="button" className="btn btn-secondary" disabled={!pick} onClick={addStudent}>
             <Plus /> Add
           </button>
