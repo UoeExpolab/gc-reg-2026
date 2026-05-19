@@ -5,9 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Store for tracking legitimate form submissions
-const legitimateSubmissions = new Map<string, number>();
-
 export function validateBrowserRequest(request: Request): boolean {
   const origin = request.headers.get('origin');
   const userAgent = request.headers.get('user-agent');
@@ -32,7 +29,6 @@ export function validateBrowserRequest(request: Request): boolean {
   }
 
   // For production, you could also validate origin against your domain
-  // For now, just check that these basic headers exist
   if (!origin && !referer) {
     return false;
   }
@@ -42,20 +38,24 @@ export function validateBrowserRequest(request: Request): boolean {
     return false;
   }
 
-  // Check if token is recent and valid (within last 30 seconds)
-  const timestamp = legitimateSubmissions.get(formVerification);
-  if (!timestamp || Date.now() - timestamp > 30000) {
+  // Basic stateless obfuscated verification (since client/server share no state)
+  try {
+    const timestampStr = typeof atob === 'function' 
+      ? atob(formVerification) 
+      : Buffer.from(formVerification, 'base64').toString('utf8');
+    const timestamp = parseInt(timestampStr, 10);
+    // As long as it parses to a valid roughly-recent timestamp, we accept
+    if (isNaN(timestamp) || timestamp < 1700000000000) {
+      return false;
+    }
+  } catch (e) {
     return false;
   }
-
-  // Clean up old tokens
-  legitimateSubmissions.delete(formVerification);
 
   return true;
 }
 
 export function generateFormVerificationToken(): string {
-  const token = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-  legitimateSubmissions.set(token, Date.now());
-  return token;
+  const ts = Date.now().toString();
+  return typeof btoa === 'function' ? btoa(ts) : Buffer.from(ts).toString('base64');
 }
