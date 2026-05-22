@@ -43,8 +43,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="spacer" />
           <nav className="nav" aria-label="Registration forms">
             <Link href="/team">Team</Link>
-            <Link href="/table">Table</Link>
             <Link href="/kit">Kit</Link>
+            <Link href="/table">Table</Link>
           </nav>
         </header>
 

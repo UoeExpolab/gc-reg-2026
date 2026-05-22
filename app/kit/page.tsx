@@ -6,7 +6,6 @@ export default function KitPage() {
     <FormPageShell
       eyebrow="Registration · 2026"
       title="Book Kit"
-      description="Borrow hardware from the Grand Challenges inventory and pick a collection slot."
     >
       <BookingForm />
     </FormPageShell>

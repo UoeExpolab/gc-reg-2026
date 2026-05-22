@@ -107,6 +107,7 @@ export default function BookingForm() {
     const id = setTimeout(async () => {
       setIsLoadingSlots(true);
       setSelectedTimeSlotId("");
+      setTimeSlots([]);
       try {
         const res = await fetch(`/api/availability?itemIds=${selectedInventoryIds.join(",")}`);
         if (res.ok) setTimeSlots((await res.json()).availableTimeSlots || []);
@@ -147,13 +148,41 @@ export default function BookingForm() {
     }
     setSubmitting(true);
     try {
+      const requestHeaders = {
+        "Content-Type": "application/json",
+        "x-form-verification": formToken
+      };
+      const reservationPayload = {
+        teamId: selectedTeamId,
+        inventoryIds: selectedInventoryIds,
+        timeSlotId: selectedTimeSlotId,
+        quantityRequested: 1
+      };
+      const availabilityRes = await fetch("/api/check-availability", {
+        method: "POST",
+        headers: requestHeaders,
+        body: JSON.stringify(reservationPayload),
+      });
+      const availabilityData = await availabilityRes.json().catch(() => ({}));
+
+      if (!availabilityRes.ok) {
+        const message = availabilityData.error || "Unable to verify availability. Please try again.";
+        setErrors(x => ({ ...x, slot: message }));
+        toast({ variant: "danger", title: "Could not check availability.", sub: message });
+        return;
+      }
+
+      if (!availabilityData.available) {
+        const message = availabilityData.error || "Not enough units available for this time slot.";
+        setErrors(x => ({ ...x, slot: message }));
+        toast({ variant: "danger", title: "Not enough units available", sub: message });
+        return;
+      }
+
       const res = await fetch("/api/reservations", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-form-verification": formToken
-        },
-        body: JSON.stringify({ teamId: selectedTeamId, inventoryIds: selectedInventoryIds, timeSlotId: selectedTimeSlotId }),
+        headers: requestHeaders,
+        body: JSON.stringify(reservationPayload),
       });
       const data = await res.json();
       if (res.ok) {
@@ -162,6 +191,9 @@ export default function BookingForm() {
         // Generate new token for next submission
         setFormToken(generateFormVerificationToken());
       } else {
+        if (res.status === 409 && data.error) {
+          setErrors(x => ({ ...x, slot: data.error }));
+        }
         toast({ variant: "danger", title: "Error", sub: data.error || "Failed to reserve kit." });
       }
     } catch {

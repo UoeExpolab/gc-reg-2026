@@ -8,7 +8,6 @@ export default function TablePage() {
     <FormPageShell
       eyebrow="Registration · 2026"
       title="Reserve Table"
-      description="Claim a workspace for the duration of the hackathon. Dashed tiles are already taken."
     >
       <TableReservationForm />
     </FormPageShell>

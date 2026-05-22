@@ -6,7 +6,6 @@ export default function TeamPage() {
     <FormPageShell
       eyebrow="Registration · 2026"
       title="Register Team"
-      description="Add teammates, pick a Challenge track, and tell us about your project."
     >
       <TeamRegistrationForm />
     </FormPageShell>

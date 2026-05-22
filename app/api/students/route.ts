@@ -74,7 +74,8 @@ export async function GET() {
           inTeam: assignedStudentIds.has(record.id)
         };
       })
-      .filter(s => !s.inTeam); // Only return students not in teams
+      .filter(s => !s.inTeam) // Only return students not in teams
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     return NextResponse.json({ students });
   } catch (error) {

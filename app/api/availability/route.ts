@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import base from '@/lib/airtable';
+import {
+  checkInventoryAvailabilityForTimeSlots,
+  normalizeInventoryIds,
+} from '@/lib/inventory-availability';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const itemIdsStr = searchParams.get('itemIds');
-  const itemIds = itemIdsStr ? itemIdsStr.split(',') : [];
+  const itemIds = normalizeInventoryIds(itemIdsStr);
 
   if (itemIds.length === 0) {
     return NextResponse.json({ error: 'Missing itemIds parameter' }, { status: 400 });
@@ -20,26 +24,20 @@ export async function GET(request: Request) {
       name: (record.get('Slot Name/Time') || record.get('Name') || record.get('Slot Name') || 'Unnamed Slot') as string,
     }));
 
-    // 2. Fetch all reservations
-    const reservationsRecords = await base('Inventory Reservations').select().all();
-    
-    // Find all time slot IDs that are already booked for ANY of the requested itemIds
-    const bookedTimeSlotIds = new Set<string>();
-    
-    reservationsRecords.forEach(record => {
-      const inventoryLinks = record.get('Inventory') as string[] | undefined;
-      const timeSlotLinks = record.get('Time Slots') as string[] | undefined;
-      
-      if (inventoryLinks && timeSlotLinks) {
-        const hasOverlap = itemIds.some(id => inventoryLinks.includes(id));
-        if (hasOverlap) {
-          timeSlotLinks.forEach(tsId => bookedTimeSlotIds.add(tsId));
-        }
-      }
+    const timeSlotNamesById = new Map(timeSlots.map(ts => [ts.id, ts.name]));
+    const availabilityByTimeSlot = await checkInventoryAvailabilityForTimeSlots({
+      inventoryIds: itemIds,
+      timeSlotIds: timeSlots.map(ts => ts.id),
+      quantityRequested: 1,
+      timeSlotNamesById,
     });
 
-    // 3. Filter available time slots
-    const availableTimeSlots = timeSlots.filter(ts => !bookedTimeSlotIds.has(ts.id));
+    const availableTimeSlotIds = new Set(
+      availabilityByTimeSlot
+        .filter(availability => availability.available)
+        .map(availability => availability.timeSlotId)
+    );
+    const availableTimeSlots = timeSlots.filter(ts => availableTimeSlotIds.has(ts.id));
 
     return NextResponse.json({ availableTimeSlots });
   } catch (error) {

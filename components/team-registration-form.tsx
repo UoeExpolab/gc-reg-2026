@@ -139,11 +139,13 @@ export default function TeamRegistrationForm() {
     Promise.all([fetch("/api/students"), fetch("/api/challenges")]).then(async ([rs, rc]) => {
       if (rs.ok) {
         const d = await rs.json();
-        setStudents(((d.students || []) as StudentResponseItem[]).map(s => ({
-          value: s.id,
-          label: s.name,
-          challengeIds: Array.isArray(s.challengeIds) ? s.challengeIds : [],
-        })));
+        setStudents(((d.students || []) as StudentResponseItem[])
+          .map(s => ({
+            value: s.id,
+            label: s.name,
+            challengeIds: Array.isArray(s.challengeIds) ? s.challengeIds : [],
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" })));
       }
       if (rc.ok) {
         const d = await rc.json();

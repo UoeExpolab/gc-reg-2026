@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 const TABS = [
-  { href: "/team", value: "01", label: "Register Team", description: "Add teammates, pick a Challenge track, and tell us about your project." },
-  { href: "/table", value: "02", label: "Reserve Table", description: "Claim a workspace for the duration of the hackathon. Dashed tiles are already taken." },
-  { href: "/kit", value: "03", label: "Book Kit", description: "Borrow hardware from the Grand Challenges inventory and pick a collection slot." },
+  { href: "/team", value: "01", label: "Register Team" },
+  { href: "/kit", value: "02", label: "Book Kit" },
+  { href: "/table", value: "03", label: "Reserve Table" },
 ];
 
 export default function Home() {
@@ -24,7 +24,6 @@ export default function Home() {
           <Link key={t.href} href={t.href} className="form-link-card">
             <span className="marker">{t.value}</span>
             <span className="label">{t.label}</span>
-            <span className="hint">{t.description}</span>
           </Link>
         ))}
       </div>

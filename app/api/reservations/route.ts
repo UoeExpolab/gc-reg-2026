@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import base from '@/lib/airtable';
 import { validateBrowserRequest } from '@/lib/utils';
+import {
+  checkInventoryAvailability,
+  formatAvailabilityError,
+  normalizeInventoryIds,
+  normalizeRequestedQuantity,
+} from '@/lib/inventory-availability';
 
 export async function POST(request: Request) {
   // Validate that this is a legitimate browser request
@@ -9,10 +15,34 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { teamId, inventoryIds, timeSlotId } = await request.json();
+    const {
+      teamId,
+      inventoryIds: rawInventoryIds,
+      timeSlotId: rawTimeSlotId,
+      quantityRequested: rawQuantityRequested,
+    } = await request.json();
+    const inventoryIds = normalizeInventoryIds(rawInventoryIds);
+    const timeSlotId = typeof rawTimeSlotId === 'string' ? rawTimeSlotId : '';
+    const quantityRequested = normalizeRequestedQuantity(rawQuantityRequested);
 
     if (!teamId || !inventoryIds || inventoryIds.length === 0 || !timeSlotId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const availability = await checkInventoryAvailability({
+      inventoryIds,
+      timeSlotId,
+      quantityRequested,
+    });
+
+    if (!availability.available) {
+      return NextResponse.json(
+        {
+          error: formatAvailabilityError(availability),
+          availability,
+        },
+        { status: 409 }
+      );
     }
 
     // 2. Create the reservation
@@ -21,7 +51,8 @@ export async function POST(request: Request) {
         fields: {
           "Inventory": inventoryIds,
           "Time Slots": [timeSlotId],
-          "Booked By": [teamId]
+          "Booked By": [teamId],
+          "Quantity Requested": quantityRequested
         }
       }
     ]);

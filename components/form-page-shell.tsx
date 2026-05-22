@@ -4,11 +4,10 @@ import type { ReactNode } from "react";
 type FormPageShellProps = {
   eyebrow: string;
   title: string;
-  description: string;
   children: ReactNode;
 };
 
-export function FormPageShell({ eyebrow, title, description, children }: FormPageShellProps) {
+export function FormPageShell({ eyebrow, title, children }: FormPageShellProps) {
   return (
     <main className="form-page">
       <div className="form-page-heading">
@@ -29,7 +28,6 @@ export function FormPageShell({ eyebrow, title, description, children }: FormPag
             {title}
           </div>
           <h2>{title}</h2>
-          <p>{description}</p>
         </div>
         <div className="body">{children}</div>
       </div>
