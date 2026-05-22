@@ -142,34 +142,18 @@ a:hover{text-decoration:underline;text-underline-offset:3px;}
 .form-link-card .label{font-family:var(--font-serif);font-size:22px;font-weight:600;line-height:1.1;}
 .form-link-card .hint{font-size:13px;color:var(--ink-60);line-height:1.45;}
 .home-page{display:flex;flex-direction:column;gap:36px;}
-.home-intro{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,0.85fr);gap:28px;align-items:stretch;}
+.home-intro{max-width:780px;}
 .home-intro .form-index-heading{margin-bottom:20px;}
 .home-lede{font-family:var(--font-serif);font-size:20px;line-height:1.48;color:var(--ink-70);max-width:720px;margin:0;}
-.home-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px;}
-.home-meta span{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;background:var(--white);border:1px solid var(--ink-08);font-size:12px;font-weight:700;color:var(--exeter-green);}
-.home-highlight{position:relative;overflow:hidden;background:var(--exeter-green);color:var(--on-green);border-radius:var(--radius-lg);padding:28px;border:1px solid var(--exeter-gold);box-shadow:var(--shadow-md);display:flex;flex-direction:column;justify-content:space-between;gap:26px;}
-.home-highlight h2{font-family:var(--font-serif);font-size:30px;line-height:1.08;font-weight:600;margin:12px 0 10px;color:var(--on-green);}
-.home-highlight p{margin:0;color:var(--on-green-80);font-size:14px;line-height:1.55;}
-.home-flourish{position:absolute;right:-28px;top:-24px;width:180px;height:180px;color:var(--exeter-gold);background:currentColor;opacity:0.18;mask:url("/assets/botanical-flourish.svg") center/contain no-repeat;-webkit-mask:url("/assets/botanical-flourish.svg") center/contain no-repeat;}
 .landing-section{display:flex;flex-direction:column;gap:14px;}
 .section-heading{display:flex;align-items:end;justify-content:space-between;gap:16px;border-bottom:1px solid var(--ink-10);padding-bottom:12px;}
-.section-heading .eyebrow,.info-panel .eyebrow{font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--exeter-sprig);}
+.section-heading .eyebrow{font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--exeter-sprig);}
 .section-heading h2{font-family:var(--font-serif);font-size:28px;line-height:1.1;font-weight:600;margin:0;}
-.landing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
-.landing-grid.compact{grid-template-columns:repeat(3,minmax(0,1fr));}
-.info-panel{background:var(--white);border:1px solid var(--ink-08);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:22px;}
-.info-panel p,.info-panel li{font-size:14px;line-height:1.55;color:var(--ink-70);}
-.info-panel p{margin:10px 0 0;}
-.info-panel ul{margin:12px 0 0;padding-left:18px;}
-.quote-panel blockquote{font-family:var(--font-serif);font-size:22px;line-height:1.25;color:var(--exeter-green);margin:12px 0 0;}
 .challenge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
 .challenge-chip{display:flex;align-items:center;min-height:48px;background:var(--white);border:1px solid var(--ink-08);border-left:3px solid var(--exeter-gold);border-radius:var(--radius-md);padding:12px 14px;font-family:var(--font-serif);font-weight:600;color:var(--ink);}
-.video-links{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
-.video-links span{display:flex;align-items:center;min-height:34px;padding:0 12px;border-radius:var(--radius-sm);background:var(--paper);font-size:13px;font-weight:600;color:var(--exeter-green);}
 .back-link{display:inline-flex;align-items:center;min-height:38px;margin-bottom:22px;padding:0 14px;border-radius:var(--radius-md);background:var(--exeter-green);color:var(--on-green);border:1px solid var(--exeter-gold);box-shadow:var(--shadow-sm);font-size:13px;font-weight:700;}
 .back-link:hover{background:var(--exeter-green-deep);color:var(--on-green);text-decoration:none;}
-@media(max-width:860px){.home-intro,.landing-grid,.landing-grid.compact{grid-template-columns:1fr;}}
-@media(max-width:760px){.form-index,.form-page{padding:40px 20px 56px;}.form-index-grid{grid-template-columns:1fr;}.topbar{padding:0 20px;}.topbar .nav{display:none;}.section-heading{display:block;}.section-heading h2{margin-top:6px;}.home-highlight h2{font-size:26px;}}
+@media(max-width:760px){.form-index,.form-page{padding:40px 20px 56px;}.form-index-grid{grid-template-columns:1fr;}.topbar{padding:0 20px;}.topbar .nav{display:none;}.section-heading{display:block;}.section-heading h2{margin-top:6px;}}
 
 /* FORM CARD */
 .reg-main{min-width:0;}
