@@ -31,11 +31,10 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { studentIds, challengeId, projectName } = body;
-    const cleanProjectName = typeof projectName === 'string' ? projectName.trim() : '';
+    const { studentIds, challengeId } = body;
 
-    if (!Array.isArray(studentIds) || studentIds.length === 0 || !challengeId || !cleanProjectName) {
-      return NextResponse.json({ error: 'Students, challenge, and project name are required' }, { status: 400 });
+    if (!Array.isArray(studentIds) || studentIds.length === 0 || !challengeId) {
+      return NextResponse.json({ error: 'Students and challenge are required' }, { status: 400 });
     }
 
     // Auto-calculate the next group number for this challenge
@@ -68,7 +67,6 @@ export async function POST(request: Request) {
       "Students": studentIds,
       "Challenges": [challengeId],
       "Group Number": assignedGroupNumber,
-      "Project Name": cleanProjectName,
     };
 
     const newTeam = await base('Teams').create([{ fields }]);

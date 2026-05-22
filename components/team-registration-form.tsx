@@ -129,7 +129,7 @@ export default function TeamRegistrationForm() {
   const [roster, setRoster] = useState<string[]>([]);
   const [pick, setPick] = useState("");
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
-  const [projectName, setProjectName] = useState("");
+  const [registeredGroupNumber, setRegisteredGroupNumber] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -165,6 +165,7 @@ export default function TeamRegistrationForm() {
     if (!pick) return;
     setRoster([...roster, pick]);
     setPick("");
+    setRegisteredGroupNumber("");
     setErrors(e => ({ ...e, roster: "" }));
   };
 
@@ -175,7 +176,6 @@ export default function TeamRegistrationForm() {
     if (selectedChallengeId && roster.some(id => !studentsForChallenge.some(s => s.value === id))) {
       e.roster = "Only add students linked to this Challenge track.";
     }
-    if (!projectName.trim()) e.projectName = "What are you building?";
     return e;
   };
 
@@ -195,12 +195,13 @@ export default function TeamRegistrationForm() {
           "Content-Type": "application/json",
           "x-form-verification": formToken
         },
-        body: JSON.stringify({ studentIds: roster, challengeId: selectedChallengeId, projectName }),
+        body: JSON.stringify({ studentIds: roster, challengeId: selectedChallengeId }),
       });
       const data = await res.json();
       if (res.ok) {
-        toast({ variant: "success", title: "Team registered!", sub: `Group ${data.groupNumber} created.` });
-        setRoster([]); setPick(""); setSelectedChallengeId(""); setProjectName(""); setErrors({});
+        setRegisteredGroupNumber(data.groupNumber);
+        toast({ variant: "success", title: "Team registered!", sub: `Your team name is ${data.groupNumber}.` });
+        setRoster([]); setPick(""); setSelectedChallengeId(""); setErrors({});
         // Generate new token for next submission
         setFormToken(generateFormVerificationToken());
       } else {
@@ -217,6 +218,13 @@ export default function TeamRegistrationForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
+      {registeredGroupNumber && (
+        <div className="team-confirmation" role="status">
+          <div className="k">Team registered</div>
+          <div className="v">Your team name is <strong>{registeredGroupNumber}</strong></div>
+        </div>
+      )}
+
       <FormField label="Challenge" required
                  help={challengeObj ? <>Group prefix will be <strong>{challengeObj.abbreviation}</strong></> : undefined}
                  helpAccent={!!challengeObj}
@@ -225,6 +233,7 @@ export default function TeamRegistrationForm() {
                   onChange={v => {
                     setSelectedChallengeId(v);
                     setPick("");
+                    setRegisteredGroupNumber("");
                     setRoster(current => current.filter(id => students.find(s => s.value === id)?.challengeIds.includes(v)));
                     setErrors(x => ({ ...x, challenge: "", roster: "" }));
                   }}
@@ -251,7 +260,7 @@ export default function TeamRegistrationForm() {
                   <div>
                     <span className="name">{s?.label}</span>
                   </div>
-                  <button type="button" className="rm" onClick={() => setRoster(roster.filter(x => x !== id))} aria-label="Remove">
+                  <button type="button" className="rm" onClick={() => { setRoster(roster.filter(x => x !== id)); setRegisteredGroupNumber(""); }} aria-label="Remove">
                     <XIcon />
                   </button>
                 </div>
@@ -269,13 +278,6 @@ export default function TeamRegistrationForm() {
             <Plus /> Add
           </button>
         </div>
-      </FormField>
-
-      <FormField label="Project name" required error={errors.projectName}>
-        <input className={`input${errors.projectName ? " error" : ""}`}
-               value={projectName}
-               onChange={e => { setProjectName(e.target.value); setErrors(x => ({ ...x, projectName: "" })); }}
-               placeholder="Urban foraging map" />
       </FormField>
 
       <div className="form-actions">

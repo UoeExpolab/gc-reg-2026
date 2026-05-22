@@ -230,7 +230,7 @@ export default function BookingForm() {
         </div>
       )}
 
-      <FormField label={`Inventory (${selectedInventoryIds.length} selected)`} required
+      <FormField label="Inventory" required
                  help="Choose one kit item."
                  error={errors.kits}>
         <div className="kit-list">
@@ -243,7 +243,6 @@ export default function BookingForm() {
                   <div className="title">{item.name}</div>
                   <div className="sub">{formatUnitCount(item.total)}</div>
                 </div>
-                <div className="check">{selected && <Check size={14} />}</div>
               </div>
             );
           })}
@@ -273,11 +272,7 @@ export default function BookingForm() {
       </FormField>
 
       <div className="form-actions">
-        <div className="left">
-          {selectedInventoryIds.length > 0 && (
-            <span className="badge badge-sprig"><span className="dot" />1 item selected</span>
-          )}
-        </div>
+        <div className="left" />
         <div className="right">
           <button type="submit" className="btn btn-primary"
                   disabled={submitting || !selectedTeamId || selectedInventoryIds.length === 0 || !selectedTimeSlotId}>
