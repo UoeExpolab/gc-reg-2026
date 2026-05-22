@@ -48,7 +48,7 @@ export function validateBrowserRequest(request: Request): boolean {
     if (isNaN(timestamp) || timestamp < 1700000000000) {
       return false;
     }
-  } catch (e) {
+  } catch {
     return false;
   }
 

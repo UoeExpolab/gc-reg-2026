@@ -90,6 +90,7 @@ a:hover{text-decoration:underline;text-underline-offset:3px;}
 /* TOPBAR */
 .topbar{background:var(--exeter-green);color:var(--on-green);height:68px;display:flex;align-items:center;padding:0 32px;gap:20px;border-bottom:2px solid var(--exeter-gold);position:sticky;top:0;z-index:40;}
 .topbar .mark{display:flex;align-items:baseline;gap:14px;cursor:pointer;color:var(--on-green);padding:6px 2px;}
+.topbar .mark:hover{text-decoration:none;}
 .topbar .mark .uoe{font-family:var(--font-serif);font-weight:600;font-size:17px;}
 .topbar .mark .pipe{color:var(--exeter-gold);font-size:14px;opacity:0.6;}
 .topbar .mark .prog{font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--exeter-gold);font-weight:700;}
@@ -125,6 +126,23 @@ a:hover{text-decoration:underline;text-underline-offset:3px;}
 .reg-help{margin-top:40px;padding:20px;background:var(--paper-deep);border-radius:var(--radius-md);border-left:2px solid var(--exeter-gold);}
 .reg-help .h{font-family:var(--font-serif);font-size:15px;font-weight:600;margin-bottom:6px;}
 .reg-help p{font-size:13px;color:var(--ink-70);margin:0;line-height:1.55;}
+
+/* FORM INDEX */
+.form-index,.form-page{max-width:900px;margin:0 auto;padding:56px 32px 96px;}
+.form-index-heading,.form-page-heading{margin-bottom:40px;}
+.form-index-heading .eyebrow,.form-page-heading .eyebrow{font-size:11px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--exeter-sprig);margin-bottom:10px;}
+.form-index-heading h1,.form-page-heading h1{font-family:var(--font-serif);font-size:clamp(36px,5vw,52px);line-height:1;letter-spacing:-0.025em;font-weight:600;margin:0;color:var(--ink);}
+.form-index-heading h1 em,.form-page-heading h1 em{font-style:italic;color:var(--exeter-sprig);font-weight:500;}
+.gold-rule{width:44px;height:2px;background:var(--exeter-gold);margin-top:18px;}
+.form-index-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+.form-link-card{min-height:172px;background:var(--white);border:1px solid var(--ink-08);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:22px;display:flex;flex-direction:column;gap:10px;color:var(--ink);transition:border-color var(--dur) var(--ease-out),transform var(--dur) var(--ease-out),box-shadow var(--dur) var(--ease-out);}
+.form-link-card:hover{border-color:var(--exeter-sprig);box-shadow:var(--shadow-md);transform:translateY(-2px);text-decoration:none;}
+.form-link-card .marker{width:32px;height:32px;border-radius:999px;background:var(--exeter-green);color:var(--on-green);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;font-weight:700;}
+.form-link-card .label{font-family:var(--font-serif);font-size:22px;font-weight:600;line-height:1.1;}
+.form-link-card .hint{font-size:13px;color:var(--ink-60);line-height:1.45;}
+.back-link{display:inline-flex;margin-bottom:18px;font-size:13px;font-weight:600;color:var(--ink-60);}
+.back-link:hover{color:var(--exeter-sprig);text-decoration:none;}
+@media(max-width:760px){.form-index,.form-page{padding:40px 20px 56px;}.form-index-grid{grid-template-columns:1fr;}.topbar{padding:0 20px;}.topbar .nav{display:none;}}
 
 /* FORM CARD */
 .reg-main{min-width:0;}
@@ -190,6 +208,17 @@ textarea{height:auto;min-height:104px;padding:12px 14px;line-height:1.55;resize:
 .summary .k{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-60);font-weight:700;margin-bottom:3px;}
 .summary .v{font-size:14px;color:var(--ink);font-weight:500;font-family:var(--font-serif);}
 .summary .v.mono{font-family:var(--font-mono);color:var(--exeter-sprig);font-weight:600;}
+
+/* BOOKING WINDOW */
+.booking-window-panel{background:var(--paper-deep);border:1px solid var(--ink-08);border-left:3px solid var(--exeter-gold);border-radius:var(--radius-md);padding:22px 24px;}
+.booking-window-kicker{font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--exeter-sprig);margin-bottom:8px;}
+.booking-window-panel h3{font-family:var(--font-serif);font-size:24px;line-height:1.2;font-weight:600;margin:0 0 8px;color:var(--ink);}
+.booking-window-panel p{margin:0;color:var(--ink-70);font-size:14px;}
+.countdown-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:20px;}
+.countdown-grid div{background:var(--white);border:1px solid var(--ink-08);border-radius:var(--radius-sm);padding:12px;text-align:center;}
+.countdown-grid strong{display:block;font-family:var(--font-serif);font-size:28px;line-height:1;color:var(--exeter-green);}
+.countdown-grid span{display:block;margin-top:6px;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-60);}
+@media(max-width:520px){.countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
 /* ROSTER */
 .roster{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}

@@ -41,10 +41,7 @@ function GCSelect({ value, onChange, options, placeholder = "Select…", disable
   const ref = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    if (!open) {
-      setQuery("");
-      return;
-    }
+    if (!open) return;
     const handler = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -114,28 +111,39 @@ function FormField({ label, required, optional, help, helpAccent, error, childre
   );
 }
 
+type StudentOption = {
+  value: string;
+  label: string;
+  challengeIds: string[];
+};
+
+type StudentResponseItem = {
+  id: string;
+  name: string;
+  challengeIds?: string[];
+};
+
 export default function TeamRegistrationForm() {
-  const [students, setStudents] = useState<{ value: string; label: string }[]>([]);
+  const [students, setStudents] = useState<StudentOption[]>([]);
   const [challenges, setChallenges] = useState<{ id: string; name: string; abbreviation: string }[]>([]);
   const [roster, setRoster] = useState<string[]>([]);
   const [pick, setPick] = useState("");
-  const [teamName, setTeamName] = useState("");
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
   const [projectName, setProjectName] = useState("");
-  const [projectDesc, setProjectDesc] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [formToken, setFormToken] = useState("");
+  const [formToken, setFormToken] = useState(() => generateFormVerificationToken());
 
   useEffect(() => {
-    // Generate form verification token for security
-    setFormToken(generateFormVerificationToken());
-
     Promise.all([fetch("/api/students"), fetch("/api/challenges")]).then(async ([rs, rc]) => {
       if (rs.ok) {
         const d = await rs.json();
-        setStudents((d.students || []).map((s: any) => ({ value: s.id, label: s.name })));
+        setStudents(((d.students || []) as StudentResponseItem[]).map(s => ({
+          value: s.id,
+          label: s.name,
+          challengeIds: Array.isArray(s.challengeIds) ? s.challengeIds : [],
+        })));
       }
       if (rc.ok) {
         const d = await rc.json();
@@ -146,7 +154,10 @@ export default function TeamRegistrationForm() {
   }, []);
 
   const challengeObj = challenges.find(c => c.id === selectedChallengeId);
-  const availableStudents = students.filter(s => !roster.includes(s.value));
+  const studentsForChallenge = selectedChallengeId
+    ? students.filter(s => s.challengeIds.includes(selectedChallengeId))
+    : [];
+  const availableStudents = studentsForChallenge.filter(s => !roster.includes(s.value));
 
   const addStudent = () => {
     if (!pick) return;
@@ -157,9 +168,11 @@ export default function TeamRegistrationForm() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!teamName.trim()) e.teamName = "Give your team a name.";
     if (roster.length === 0) e.roster = "Add at least one teammate.";
     if (!selectedChallengeId) e.challenge = "Pick a Challenge track.";
+    if (selectedChallengeId && roster.some(id => !studentsForChallenge.some(s => s.value === id))) {
+      e.roster = "Only add students linked to this Challenge track.";
+    }
     if (!projectName.trim()) e.projectName = "What are you building?";
     return e;
   };
@@ -180,12 +193,12 @@ export default function TeamRegistrationForm() {
           "Content-Type": "application/json",
           "x-form-verification": formToken
         },
-        body: JSON.stringify({ teamName, studentIds: roster, challengeId: selectedChallengeId, projectName, projectDescription: projectDesc }),
+        body: JSON.stringify({ studentIds: roster, challengeId: selectedChallengeId, projectName }),
       });
       const data = await res.json();
       if (res.ok) {
         toast({ variant: "success", title: "Team registered!", sub: `Group ${data.groupNumber} created.` });
-        setTeamName(""); setRoster([]); setPick(""); setSelectedChallengeId(""); setProjectName(""); setProjectDesc(""); setErrors({});
+        setRoster([]); setPick(""); setSelectedChallengeId(""); setProjectName(""); setErrors({});
         // Generate new token for next submission
         setFormToken(generateFormVerificationToken());
       } else {
@@ -202,26 +215,28 @@ export default function TeamRegistrationForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <div className="field-row">
-        <FormField label="Team name" required error={errors.teamName}>
-          <input className={`input${errors.teamName ? " error" : ""}`}
-                 value={teamName}
-                 onChange={e => { setTeamName(e.target.value); setErrors(x => ({ ...x, teamName: "" })); }}
-                 placeholder="The Kelpies" />
-        </FormField>
-        <FormField label="Challenge" required
-                   help={challengeObj ? <>Group prefix will be <strong>{challengeObj.abbreviation}</strong></> : undefined}
-                   helpAccent={!!challengeObj}
-                   error={errors.challenge}>
-          <GCSelect value={selectedChallengeId}
-                    onChange={v => { setSelectedChallengeId(v); setErrors(x => ({ ...x, challenge: "" })); }}
-                    options={challenges.map(c => ({ value: c.id, label: c.name, hint: c.abbreviation }))}
-                    error={!!errors.challenge}
-                    placeholder="Pick a track" />
-        </FormField>
-      </div>
+      <FormField label="Challenge" required
+                 help={challengeObj ? <>Group prefix will be <strong>{challengeObj.abbreviation}</strong></> : undefined}
+                 helpAccent={!!challengeObj}
+                 error={errors.challenge}>
+        <GCSelect value={selectedChallengeId}
+                  onChange={v => {
+                    setSelectedChallengeId(v);
+                    setPick("");
+                    setRoster(current => current.filter(id => students.find(s => s.value === id)?.challengeIds.includes(v)));
+                    setErrors(x => ({ ...x, challenge: "", roster: "" }));
+                  }}
+                  options={challenges.map(c => ({ value: c.id, label: c.name, hint: c.abbreviation }))}
+                  error={!!errors.challenge}
+                  placeholder="Pick a track" />
+      </FormField>
 
-      <FormField label={`Team members (${roster.length})`} required help="Select everyone who will be on this team." error={errors.roster}>
+      <FormField
+        label={`Team members (${roster.length})`}
+        required
+        help={selectedChallengeId ? "Search is limited to students linked to the selected Challenge track." : "Pick a Challenge before adding students."}
+        error={errors.roster}
+      >
         {roster.length === 0 ? (
           <div className="roster-empty">No team members yet — add someone below.</div>
         ) : (
@@ -245,8 +260,8 @@ export default function TeamRegistrationForm() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: 8 }}>
           <GCSelect value={pick} onChange={setPick}
                     options={availableStudents}
-                    placeholder={availableStudents.length ? "Find a student…" : "Everyone's on the team"}
-                    disabled={availableStudents.length === 0}
+                    placeholder={!selectedChallengeId ? "Pick a challenge first" : availableStudents.length ? "Find a student…" : "No available students for this challenge"}
+                    disabled={!selectedChallengeId || availableStudents.length === 0}
                     searchable={true} />
           <button type="button" className="btn btn-secondary" disabled={!pick} onClick={addStudent}>
             <Plus /> Add
@@ -259,12 +274,6 @@ export default function TeamRegistrationForm() {
                value={projectName}
                onChange={e => { setProjectName(e.target.value); setErrors(x => ({ ...x, projectName: "" })); }}
                placeholder="Urban foraging map" />
-      </FormField>
-
-      <FormField label="Project description" optional help={`${projectDesc.length}/400 · What are you building, and why does it matter?`}>
-        <textarea value={projectDesc} maxLength={400}
-                  onChange={e => setProjectDesc(e.target.value)}
-                  placeholder="A few sentences on what you're making and who it's for…" />
       </FormField>
 
       <div className="form-actions">

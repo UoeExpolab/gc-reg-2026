@@ -10,7 +10,7 @@ export async function GET() {
 
     const teams = records.map(record => ({
       id: record.id,
-      name: record.get('Team Name') as string,
+      name: (record.get('Team Name') as string) || (record.get('Group Number') as string) || (record.get('Project Name') as string) || 'Team',
       project: record.get('Project Name') as string,
       group: record.get('Group Number') as string,
       challenge: record.get('Challenges') as string[] // array of linked ids
@@ -31,10 +31,11 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { teamName, studentIds, challengeId, projectName, projectDescription } = body;
+    const { studentIds, challengeId, projectName } = body;
+    const cleanProjectName = typeof projectName === 'string' ? projectName.trim() : '';
 
-    if (!teamName || !studentIds || studentIds.length === 0 || !challengeId || !projectName) {
-      return NextResponse.json({ error: 'Team name, students, challenge, and project name are required' }, { status: 400 });
+    if (!Array.isArray(studentIds) || studentIds.length === 0 || !challengeId || !cleanProjectName) {
+      return NextResponse.json({ error: 'Students, challenge, and project name are required' }, { status: 400 });
     }
 
     // Auto-calculate the next group number for this challenge
@@ -62,20 +63,18 @@ export async function POST(request: Request) {
     const abbreviation = (challengeRecord.get('Abbreviation') as string) || '';
     const assignedGroupNumber = `${abbreviation}${assignedNumber}`;
 
-    const fields: any = {
-      "Team Name": teamName,
+    const fields: Record<string, string | string[]> = {
+      "Team Name": assignedGroupNumber,
       "Students": studentIds,
       "Challenges": [challengeId],
       "Group Number": assignedGroupNumber,
-      "Project Name": projectName,
+      "Project Name": cleanProjectName,
     };
-    if (projectDescription) fields["Project  Description"] = projectDescription;
 
     const newTeam = await base('Teams').create([{ fields }]);
 
     // Also link the selected students to the Challenge record
     try {
-      const challengeRecord = await base('Challenges').find(challengeId);
       const existingStudents = (challengeRecord.get('Students') as string[]) || [];
       const mergedStudents = Array.from(new Set([...existingStudents, ...studentIds]));
       await base('Challenges').update(challengeId, { "Students": mergedStudents });

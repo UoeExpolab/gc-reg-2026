@@ -102,7 +102,7 @@ export function MultiSelect({ options, selected, onChange, placeholder = "Select
                         e.preventDefault();
                         e.stopPropagation();
                       }}
-                      onSelect={(value) => {
+                      onSelect={() => {
                         setInputValue("");
                         onChange([...selected, option.value]);
                       }}

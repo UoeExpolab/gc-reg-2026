@@ -61,10 +61,26 @@ function FormField({ label, required, help, error, children }: {
 
 interface InventoryItem { id: string; name: string; }
 interface TimeSlot { id: string; name: string; }
+interface Team {
+  id: string;
+  name: string;
+  project?: string;
+  group?: string;
+  challenge?: string[];
+}
+interface Challenge {
+  id: string;
+  name: string;
+}
+
+function getTeamOptionLabel(team: Team) {
+  const group = team.group || team.name;
+  return team.project && team.project !== group ? `${group} · ${team.project}` : group;
+}
 
 export default function BookingForm() {
-  const [teams, setTeams] = useState<any[]>([]);
-  const [challenges, setChallenges] = useState<any[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedInventoryIds, setSelectedInventoryIds] = useState<string[]>([]);
@@ -74,12 +90,9 @@ export default function BookingForm() {
   const [isLoadingForm, setIsLoadingForm] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formToken, setFormToken] = useState("");
+  const [formToken, setFormToken] = useState(() => generateFormVerificationToken());
 
   useEffect(() => {
-    // Generate form verification token for security
-    setFormToken(generateFormVerificationToken());
-
     Promise.all([fetch("/api/teams"), fetch("/api/inventory"), fetch("/api/challenges")])
       .then(async ([rt, ri, rc]) => {
         if (rt.ok) setTeams((await rt.json()).teams || []);
@@ -90,7 +103,7 @@ export default function BookingForm() {
   }, []);
 
   useEffect(() => {
-    if (selectedInventoryIds.length === 0) { setTimeSlots([]); setSelectedTimeSlotId(""); return; }
+    if (selectedInventoryIds.length === 0) return;
     const id = setTimeout(async () => {
       setIsLoadingSlots(true);
       setSelectedTimeSlotId("");
@@ -104,11 +117,20 @@ export default function BookingForm() {
   }, [selectedInventoryIds]);
 
   const selectedTeam = teams.find(t => t.id === selectedTeamId);
-  const challengeName = selectedTeam?.challenge?.[0]
-    ? (challenges.find(c => c.id === selectedTeam.challenge[0])?.name || "") : "";
+  const selectedChallengeId = selectedTeam?.challenge?.[0];
+  const challengeName = selectedChallengeId
+    ? (challenges.find(c => c.id === selectedChallengeId)?.name || "") : "";
 
   const toggleKit = (id: string) => {
-    setSelectedInventoryIds(ks => ks.includes(id) ? ks.filter(x => x !== id) : [...ks, id]);
+    const next = selectedInventoryIds.includes(id)
+      ? selectedInventoryIds.filter(x => x !== id)
+      : [...selectedInventoryIds, id];
+
+    setSelectedInventoryIds(next);
+    if (next.length === 0) {
+      setTimeSlots([]);
+      setSelectedTimeSlotId("");
+    }
     setErrors(x => ({ ...x, kits: "" }));
   };
 
@@ -156,7 +178,7 @@ export default function BookingForm() {
       <FormField label="Team" required error={errors.teamId}>
         <GCSelect value={selectedTeamId}
                   onChange={v => { setSelectedTeamId(v); setErrors(x => ({ ...x, teamId: "" })); }}
-                  options={teams.map(t => ({ value: t.id, label: t.name, hint: t.group }))}
+                  options={teams.map(t => ({ value: t.id, label: getTeamOptionLabel(t), hint: t.group }))}
                   error={!!errors.teamId}
                   placeholder="Select your team" />
       </FormField>

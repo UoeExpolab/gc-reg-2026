@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import "./globals.css";
 import { Toaster } from "@/components/gc-toaster";
 import { PWARegistration } from "@/components/pwa-registration";
@@ -6,7 +7,6 @@ import { PWARegistration } from "@/components/pwa-registration";
 export const metadata: Metadata = {
   title: "Grand Challenges · Registration",
   description: "Register your team, reserve a table, and book equipment kits for Grand Challenges 2026.",
-  themeColor: "#1a1a1a",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -35,11 +35,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <header className="topbar">
-          <div className="mark">
+          <Link href="/" className="mark">
             <span className="uoe">University of Exeter</span>
             <span className="pipe">/</span>
             <span className="prog">Grand Challenges · 2026</span>
-          </div>
+          </Link>
+          <div className="spacer" />
+          <nav className="nav" aria-label="Registration forms">
+            <Link href="/team">Team</Link>
+            <Link href="/table">Table</Link>
+            <Link href="/kit">Kit</Link>
+          </nav>
         </header>
 
         {children}

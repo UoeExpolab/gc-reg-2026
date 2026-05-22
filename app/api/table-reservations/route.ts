@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
 import base from '@/lib/airtable';
+import { getTableBookingStatus } from '@/lib/table-booking-window';
 import { validateBrowserRequest } from '@/lib/utils';
 
 export async function POST(request: Request) {
   // Validate that this is a legitimate browser request
   if (!validateBrowserRequest(request)) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 403 });
+  }
+
+  const bookingStatus = getTableBookingStatus();
+  if (!bookingStatus.isOpen) {
+    const error = bookingStatus.isBefore
+      ? `Table booking opens at ${bookingStatus.opensAtLabel}.`
+      : `Table booking closed at ${bookingStatus.closesAtLabel}.`;
+
+    return NextResponse.json({ error }, { status: 403 });
   }
 
   try {

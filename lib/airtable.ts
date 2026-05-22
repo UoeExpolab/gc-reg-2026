@@ -1,15 +1,25 @@
 import Airtable from 'airtable';
 
-if (!process.env.AIRTABLE_PAT) {
-  console.warn("Missing AIRTABLE_PAT environment variable");
+let cachedBase: Airtable.Base | null = null;
+
+function getBase() {
+  if (!cachedBase) {
+    if (!process.env.AIRTABLE_PAT) {
+      console.warn("Missing AIRTABLE_PAT environment variable");
+    }
+
+    if (!process.env.AIRTABLE_BASE_ID) {
+      console.warn("Missing AIRTABLE_BASE_ID environment variable");
+    }
+
+    cachedBase = new Airtable({ apiKey: process.env.AIRTABLE_PAT || "dummy_pat" }).base(
+      process.env.AIRTABLE_BASE_ID || "dummy_base"
+    );
+  }
+
+  return cachedBase;
 }
 
-if (!process.env.AIRTABLE_BASE_ID) {
-  console.warn("Missing AIRTABLE_BASE_ID environment variable");
+export default function base(tableName: string) {
+  return getBase()(tableName);
 }
-
-const base = new Airtable({ apiKey: process.env.AIRTABLE_PAT || "dummy_pat" }).base(
-  process.env.AIRTABLE_BASE_ID || "dummy_base"
-);
-
-export default base;
