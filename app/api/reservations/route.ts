@@ -29,6 +29,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    if (inventoryIds.length > 1) {
+      return NextResponse.json(
+        { error: 'Only one inventory item can be reserved at a time' },
+        { status: 400 }
+      );
+    }
+
     const availability = await checkInventoryAvailability({
       inventoryIds,
       timeSlotId,

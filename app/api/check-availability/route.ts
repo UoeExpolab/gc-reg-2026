@@ -34,6 +34,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (inventoryIds.length > 1) {
+    return NextResponse.json(
+      { error: "Only one inventory item can be reserved at a time" },
+      { status: 400 }
+    );
+  }
+
   try {
     const availability = await checkInventoryAvailability({
       inventoryIds,

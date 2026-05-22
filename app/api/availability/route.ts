@@ -16,6 +16,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing itemIds parameter' }, { status: 400 });
   }
 
+  if (itemIds.length > 1) {
+    return NextResponse.json({ error: 'Only one inventory item can be checked at a time' }, { status: 400 });
+  }
+
   try {
     // 1. Fetch all time slots
     const timeSlotsRecords = await base('Time Slots').select().all();
@@ -32,12 +36,21 @@ export async function GET(request: Request) {
       timeSlotNamesById,
     });
 
-    const availableTimeSlotIds = new Set(
-      availabilityByTimeSlot
-        .filter(availability => availability.available)
-        .map(availability => availability.timeSlotId)
+    const availabilityByTimeSlotId = new Map(
+      availabilityByTimeSlot.map(availability => [availability.timeSlotId, availability])
     );
-    const availableTimeSlots = timeSlots.filter(ts => availableTimeSlotIds.has(ts.id));
+    const availableTimeSlots = timeSlots.flatMap(ts => {
+      const availability = availabilityByTimeSlotId.get(ts.id);
+
+      if (!availability?.available) {
+        return [];
+      }
+
+      return [{
+        ...ts,
+        remainingAvailable: availability.remainingAvailable,
+      }];
+    });
 
     return NextResponse.json({ availableTimeSlots });
   } catch (error) {

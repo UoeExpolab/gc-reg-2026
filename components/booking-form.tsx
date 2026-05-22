@@ -59,8 +59,8 @@ function FormField({ label, required, help, error, children }: {
   );
 }
 
-interface InventoryItem { id: string; name: string; }
-interface TimeSlot { id: string; name: string; }
+interface InventoryItem { id: string; name: string; total: number; }
+interface TimeSlot { id: string; name: string; remainingAvailable?: number; }
 interface Team {
   id: string;
   name: string;
@@ -76,6 +76,10 @@ interface Challenge {
 function getTeamOptionLabel(team: Team) {
   const group = team.group || team.name;
   return team.project && team.project !== group ? `${group} · ${team.project}` : group;
+}
+
+function formatUnitCount(count: number) {
+  return `${count} ${count === 1 ? "unit" : "units"} available`;
 }
 
 export default function BookingForm() {
@@ -96,7 +100,14 @@ export default function BookingForm() {
     Promise.all([fetch("/api/teams"), fetch("/api/inventory"), fetch("/api/challenges")])
       .then(async ([rt, ri, rc]) => {
         if (rt.ok) setTeams((await rt.json()).teams || []);
-        if (ri.ok) setInventory((await ri.json()).inventory || []);
+        if (ri.ok) {
+          const inventoryData = ((await ri.json()).inventory || []) as InventoryItem[];
+          setInventory(
+            inventoryData
+              .map(item => ({ ...item, total: Number(item.total || 0) }))
+              .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+          );
+        }
         if (rc.ok) setChallenges((await rc.json()).challenges || []);
         setIsLoadingForm(false);
       }).catch(() => { toast({ variant: "danger", title: "Failed to load data." }); setIsLoadingForm(false); });
@@ -123,16 +134,12 @@ export default function BookingForm() {
     ? (challenges.find(c => c.id === selectedChallengeId)?.name || "") : "";
 
   const toggleKit = (id: string) => {
-    const next = selectedInventoryIds.includes(id)
-      ? selectedInventoryIds.filter(x => x !== id)
-      : [...selectedInventoryIds, id];
+    const next = selectedInventoryIds.includes(id) ? [] : [id];
 
     setSelectedInventoryIds(next);
-    if (next.length === 0) {
-      setTimeSlots([]);
-      setSelectedTimeSlotId("");
-    }
-    setErrors(x => ({ ...x, kits: "" }));
+    setTimeSlots([]);
+    setSelectedTimeSlotId("");
+    setErrors(x => ({ ...x, kits: "", slot: "" }));
   };
 
   const handleSubmit = async (ev: React.FormEvent) => {
@@ -224,7 +231,7 @@ export default function BookingForm() {
       )}
 
       <FormField label={`Inventory (${selectedInventoryIds.length} selected)`} required
-                 help="Tap to add. You can mix and match."
+                 help="Choose one kit item."
                  error={errors.kits}>
         <div className="kit-list">
           {inventory.map(item => {
@@ -234,6 +241,7 @@ export default function BookingForm() {
                 <div className="ico"><PackageIcon /></div>
                 <div className="main">
                   <div className="title">{item.name}</div>
+                  <div className="sub">{formatUnitCount(item.total)}</div>
                 </div>
                 <div className="check">{selected && <Check size={14} />}</div>
               </div>
@@ -257,7 +265,7 @@ export default function BookingForm() {
                       disabled={selectedInventoryIds.length === 0}
                       onClick={() => { setSelectedTimeSlotId(s.id); setErrors(x => ({ ...x, slot: "" })); }}>
                 <div className="day">{s.name}</div>
-                <div className="avail">Available</div>
+                <div className="avail">{typeof s.remainingAvailable === "number" ? formatUnitCount(s.remainingAvailable) : "Available"}</div>
               </button>
             ))}
           </div>
@@ -267,7 +275,7 @@ export default function BookingForm() {
       <div className="form-actions">
         <div className="left">
           {selectedInventoryIds.length > 0 && (
-            <span className="badge badge-sprig"><span className="dot" />{selectedInventoryIds.length} item{selectedInventoryIds.length > 1 ? "s" : ""} in bundle</span>
+            <span className="badge badge-sprig"><span className="dot" />1 item selected</span>
           )}
         </div>
         <div className="right">
