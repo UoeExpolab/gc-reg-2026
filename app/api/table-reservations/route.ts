@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import base from '@/lib/airtable';
 import { getTableBookingStatus } from '@/lib/table-booking-window';
-import { validateBrowserRequest } from '@/lib/utils';
+import { validateBrowserRequest } from '@/lib/request-security';
 
 export async function POST(request: Request) {
   // Validate that this is a legitimate browser request

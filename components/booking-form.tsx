@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/gc-toaster";
-import { API_READ_HEADERS, generateFormVerificationToken } from "@/lib/utils";
+import { API_READ_HEADERS, fetchFormVerificationToken } from "@/lib/utils";
 
 const ChevronDown = () => (<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>);
 const Check = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>);
@@ -94,7 +94,7 @@ export default function BookingForm() {
   const [isLoadingForm, setIsLoadingForm] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formToken, setFormToken] = useState(() => generateFormVerificationToken());
+  const [formToken, setFormToken] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -103,6 +103,8 @@ export default function BookingForm() {
       fetch("/api/challenges", { headers: API_READ_HEADERS })
     ])
       .then(async ([rt, ri, rc]) => {
+        const token = await fetchFormVerificationToken();
+        setFormToken(token);
         if (rt.ok) setTeams((await rt.json()).teams || []);
         if (ri.ok) {
           const inventoryData = ((await ri.json()).inventory || []) as InventoryItem[];
@@ -161,9 +163,12 @@ export default function BookingForm() {
     }
     setSubmitting(true);
     try {
+      const currentFormToken = formToken || await fetchFormVerificationToken();
+      if (!formToken) setFormToken(currentFormToken);
+
       const requestHeaders = {
         "Content-Type": "application/json",
-        "x-form-verification": formToken
+        "x-form-verification": currentFormToken
       };
       const reservationPayload = {
         teamId: selectedTeamId,
@@ -201,8 +206,7 @@ export default function BookingForm() {
       if (res.ok) {
         toast({ variant: "success", title: "Kit reserved!", sub: `${selectedInventoryIds.length} item${selectedInventoryIds.length > 1 ? "s" : ""} reserved.` });
         setSelectedTeamId(""); setSelectedInventoryIds([]); setSelectedTimeSlotId(""); setErrors({});
-        // Generate new token for next submission
-        setFormToken(generateFormVerificationToken());
+        setFormToken(await fetchFormVerificationToken());
       } else {
         if (res.status === 409 && data.error) {
           setErrors(x => ({ ...x, slot: data.error }));

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/gc-toaster";
 import { formatCountdown, getTableBookingStatus, TABLE_BOOKING_OPENS_AT } from "@/lib/table-booking-window";
-import { API_READ_HEADERS, generateFormVerificationToken } from "@/lib/utils";
+import { API_READ_HEADERS, fetchFormVerificationToken } from "@/lib/utils";
 
 const ChevronDown = () => (<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>);
 const Check = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>);
@@ -141,7 +141,7 @@ export default function TableReservationForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [formToken, setFormToken] = useState(() => generateFormVerificationToken());
+  const [formToken, setFormToken] = useState("");
   const [now, setNow] = useState<number | null>(null);
 
   const bookingStatus = now === null ? null : getTableBookingStatus(new Date(now));
@@ -169,6 +169,9 @@ export default function TableReservationForm() {
     ])
       .then(async ([rt, rtbl, rc]) => {
         if (cancelled) return;
+        const token = await fetchFormVerificationToken();
+        if (cancelled) return;
+        setFormToken(token);
         if (rt.ok) setTeams((await rt.json()).teams || []);
         if (rtbl.ok) setTables((await rtbl.json()).tables || []);
         if (rc.ok) setChallenges((await rc.json()).challenges || []);
@@ -214,11 +217,14 @@ export default function TableReservationForm() {
     }
     setSubmitting(true);
     try {
+      const currentFormToken = formToken || await fetchFormVerificationToken();
+      if (!formToken) setFormToken(currentFormToken);
+
       const res = await fetch("/api/table-reservations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-form-verification": formToken
+          "x-form-verification": currentFormToken
         },
         body: JSON.stringify({ teamId: selectedTeamId, tableId: selectedTableId }),
       });
@@ -227,8 +233,7 @@ export default function TableReservationForm() {
         const tableName = tables.find(t => t.id === selectedTableId)?.name;
         toast({ variant: "success", title: "Table reserved!", sub: tableName });
         setSelectedTeamId(""); setSelectedTableId(""); setErrors({});
-        // Generate new token for next submission
-        setFormToken(generateFormVerificationToken());
+        setFormToken(await fetchFormVerificationToken());
       } else {
         toast({ variant: "danger", title: "Error", sub: data.error || "Failed to reserve table." });
       }

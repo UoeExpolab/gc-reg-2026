@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import base from '@/lib/airtable';
-import { validateBrowserRequest } from '@/lib/utils';
+import { validateBrowserRequest } from '@/lib/request-security';
 import {
   checkInventoryAvailability,
   formatAvailabilityError,

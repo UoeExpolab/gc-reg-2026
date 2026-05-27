@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/gc-toaster";
-import { API_READ_HEADERS, generateFormVerificationToken } from "@/lib/utils";
+import { API_READ_HEADERS, fetchFormVerificationToken } from "@/lib/utils";
 
 // --- Inline SVG icons ---
 const ChevronDown = () => (
@@ -133,13 +133,15 @@ export default function TeamRegistrationForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [formToken, setFormToken] = useState(() => generateFormVerificationToken());
+  const [formToken, setFormToken] = useState("");
 
   useEffect(() => {
     Promise.all([
       fetch("/api/students", { headers: API_READ_HEADERS }),
       fetch("/api/challenges", { headers: API_READ_HEADERS })
     ]).then(async ([rs, rc]) => {
+      const token = await fetchFormVerificationToken();
+      setFormToken(token);
       if (rs.ok) {
         const d = await rs.json();
         setStudents(((d.students || []) as StudentResponseItem[])
@@ -192,11 +194,14 @@ export default function TeamRegistrationForm() {
     }
     setSubmitting(true);
     try {
+      const currentFormToken = formToken || await fetchFormVerificationToken();
+      if (!formToken) setFormToken(currentFormToken);
+
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-form-verification": formToken
+          "x-form-verification": currentFormToken
         },
         body: JSON.stringify({ studentIds: roster, challengeId: selectedChallengeId }),
       });
@@ -205,8 +210,7 @@ export default function TeamRegistrationForm() {
         setRegisteredGroupNumber(data.groupNumber);
         toast({ variant: "success", title: "Team registered!", sub: `Your team name is ${data.groupNumber}.` });
         setRoster([]); setPick(""); setSelectedChallengeId(""); setErrors({});
-        // Generate new token for next submission
-        setFormToken(generateFormVerificationToken());
+        setFormToken(await fetchFormVerificationToken());
       } else {
         toast({ variant: "danger", title: "Error", sub: data.error || "Failed to register team." });
       }

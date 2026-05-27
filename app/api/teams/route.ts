@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import base from '@/lib/airtable';
-import { validateApiReadRequest, validateBrowserRequest } from '@/lib/utils';
+import { validateApiReadRequest } from '@/lib/utils';
+import { validateBrowserRequest } from '@/lib/request-security';
 
 export const dynamic = 'force-dynamic';
 

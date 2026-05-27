@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { validateBrowserRequest } from "@/lib/request-security";
 import {
   checkInventoryAvailability,
   formatAvailabilityError,
@@ -9,6 +10,10 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  if (!validateBrowserRequest(request)) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 403 });
+  }
+
   let body: unknown;
 
   try {
