@@ -4,10 +4,15 @@ import {
   checkInventoryAvailabilityForTimeSlots,
   normalizeInventoryIds,
 } from '@/lib/inventory-availability';
+import { validateApiReadRequest } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  if (!validateApiReadRequest(request)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   const { searchParams } = new URL(request.url);
   const itemIdsStr = searchParams.get('itemIds');
   const itemIds = normalizeInventoryIds(itemIdsStr);

@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import base from '@/lib/airtable';
-import { validateBrowserRequest } from '@/lib/utils';
+import { validateApiReadRequest, validateBrowserRequest } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!validateApiReadRequest(request)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const records = await base('Teams').select().all();
 

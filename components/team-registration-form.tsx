@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/gc-toaster";
-import { generateFormVerificationToken } from "@/lib/utils";
+import { API_READ_HEADERS, generateFormVerificationToken } from "@/lib/utils";
 
 // --- Inline SVG icons ---
 const ChevronDown = () => (
@@ -136,7 +136,10 @@ export default function TeamRegistrationForm() {
   const [formToken, setFormToken] = useState(() => generateFormVerificationToken());
 
   useEffect(() => {
-    Promise.all([fetch("/api/students"), fetch("/api/challenges")]).then(async ([rs, rc]) => {
+    Promise.all([
+      fetch("/api/students", { headers: API_READ_HEADERS }),
+      fetch("/api/challenges", { headers: API_READ_HEADERS })
+    ]).then(async ([rs, rc]) => {
       if (rs.ok) {
         const d = await rs.json();
         setStudents(((d.students || []) as StudentResponseItem[])

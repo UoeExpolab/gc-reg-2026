@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/gc-toaster";
-import { generateFormVerificationToken } from "@/lib/utils";
+import { API_READ_HEADERS, generateFormVerificationToken } from "@/lib/utils";
 
 const ChevronDown = () => (<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>);
 const Check = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>);
@@ -97,7 +97,11 @@ export default function BookingForm() {
   const [formToken, setFormToken] = useState(() => generateFormVerificationToken());
 
   useEffect(() => {
-    Promise.all([fetch("/api/teams"), fetch("/api/inventory"), fetch("/api/challenges")])
+    Promise.all([
+      fetch("/api/teams", { headers: API_READ_HEADERS }),
+      fetch("/api/inventory", { headers: API_READ_HEADERS }),
+      fetch("/api/challenges", { headers: API_READ_HEADERS })
+    ])
       .then(async ([rt, ri, rc]) => {
         if (rt.ok) setTeams((await rt.json()).teams || []);
         if (ri.ok) {
@@ -120,7 +124,9 @@ export default function BookingForm() {
       setSelectedTimeSlotId("");
       setTimeSlots([]);
       try {
-        const res = await fetch(`/api/availability?itemIds=${selectedInventoryIds.join(",")}`);
+        const res = await fetch(`/api/availability?itemIds=${selectedInventoryIds.join(",")}`, {
+          headers: API_READ_HEADERS
+        });
         if (res.ok) setTimeSlots((await res.json()).availableTimeSlots || []);
       } catch { toast({ variant: "danger", title: "Error checking availability." }); }
       finally { setIsLoadingSlots(false); }
