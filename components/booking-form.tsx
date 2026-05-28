@@ -59,7 +59,7 @@ function FormField({ label, required, help, error, children }: {
   );
 }
 
-interface InventoryItem { id: string; name: string; total: number; }
+interface InventoryItem { id: string; name: string; total: number; description?: string; }
 interface TimeSlot { id: string; name: string; remainingAvailable?: number; }
 interface Team {
   id: string;
@@ -251,6 +251,7 @@ export default function BookingForm() {
                 <div className="ico"><PackageIcon /></div>
                 <div className="main">
                   <div className="title">{item.name}</div>
+                  {item.description && <div className="sub">{item.description}</div>}
                   <div className="sub">{formatUnitCount(item.total)}</div>
                 </div>
               </div>

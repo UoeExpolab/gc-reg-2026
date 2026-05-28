@@ -11,13 +11,14 @@ export async function GET(request: Request) {
 
   try {
     const records = await base('Inventory').select({
-      fields: ['Name', 'Total'],
+      fields: ['Name', 'Total', 'Description'],
     }).all();
 
     const inventory = records.map(record => ({
       id: record.id,
       name: record.get('Name') as string,
       total: Number(record.get('Total') || 0),
+      description: record.get('Description') as string,
     })).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     return NextResponse.json({ inventory });
