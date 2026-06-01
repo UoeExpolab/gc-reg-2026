@@ -125,10 +125,11 @@ type StudentResponseItem = {
 
 export default function TeamRegistrationForm() {
   const [students, setStudents] = useState<StudentOption[]>([]);
-  const [challenges, setChallenges] = useState<{ id: string; name: string; abbreviation: string }[]>([]);
+  const [challenges, setChallenges] = useState<{ id: string; name: string; abbreviation: string; enquiryGroups?: string[] }[]>([]);
   const [roster, setRoster] = useState<string[]>([]);
   const [pick, setPick] = useState("");
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
+  const [selectedEnquiryGroup, setSelectedEnquiryGroup] = useState("");
   const [registeredGroupNumber, setRegisteredGroupNumber] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -178,6 +179,9 @@ export default function TeamRegistrationForm() {
     const e: Record<string, string> = {};
     if (roster.length === 0) e.roster = "Add at least one teammate.";
     if (!selectedChallengeId) e.challenge = "Pick a Challenge track.";
+    if (challengeObj?.enquiryGroups && challengeObj.enquiryGroups.length > 0 && !selectedEnquiryGroup) {
+      e.enquiryGroup = "Select an enquiry group.";
+    }
     if (selectedChallengeId && roster.some(id => !studentsForChallenge.some(s => s.value === id))) {
       e.roster = "Only add students linked to this Challenge track.";
     }
@@ -203,13 +207,17 @@ export default function TeamRegistrationForm() {
           "Content-Type": "application/json",
           "x-form-verification": currentFormToken
         },
-        body: JSON.stringify({ studentIds: roster, challengeId: selectedChallengeId }),
+        body: JSON.stringify({ 
+          studentIds: roster, 
+          challengeId: selectedChallengeId,
+          ...(selectedEnquiryGroup && { enquiryGroup: selectedEnquiryGroup })
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         setRegisteredGroupNumber(data.groupNumber);
         toast({ variant: "success", title: "Team registered!", sub: `Your team name is ${data.groupNumber}.` });
-        setRoster([]); setPick(""); setSelectedChallengeId(""); setErrors({});
+        setRoster([]); setPick(""); setSelectedChallengeId(""); setSelectedEnquiryGroup(""); setErrors({});
         setFormToken(await fetchFormVerificationToken());
       } else {
         toast({ variant: "danger", title: "Error", sub: data.error || "Failed to register team." });
@@ -239,15 +247,29 @@ export default function TeamRegistrationForm() {
         <GCSelect value={selectedChallengeId}
                   onChange={v => {
                     setSelectedChallengeId(v);
+                    setSelectedEnquiryGroup("");
                     setPick("");
                     setRegisteredGroupNumber("");
                     setRoster(current => current.filter(id => students.find(s => s.value === id)?.challengeIds.includes(v)));
-                    setErrors(x => ({ ...x, challenge: "", roster: "" }));
+                    setErrors(x => ({ ...x, challenge: "", roster: "", enquiryGroup: "" }));
                   }}
                   options={challenges.map(c => ({ value: c.id, label: c.name, hint: c.abbreviation }))}
                   error={!!errors.challenge}
                   placeholder="Pick a track" />
       </FormField>
+
+      {challengeObj?.enquiryGroups && challengeObj.enquiryGroups.length > 0 && (
+        <FormField label="Enquiry Group" required error={errors.enquiryGroup}>
+          <GCSelect value={selectedEnquiryGroup}
+                    onChange={v => {
+                      setSelectedEnquiryGroup(v);
+                      setErrors(x => ({ ...x, enquiryGroup: "" }));
+                    }}
+                    options={challengeObj.enquiryGroups.map(g => ({ value: g, label: g }))}
+                    error={!!errors.enquiryGroup}
+                    placeholder="Select an enquiry group" />
+        </FormField>
+      )}
 
       <FormField
         label={`Team members (${roster.length})`}

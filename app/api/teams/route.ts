@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { studentIds, challengeId } = body;
+    const { studentIds, challengeId, enquiryGroup } = body;
 
     if (!Array.isArray(studentIds) || studentIds.length === 0 || !challengeId) {
       return NextResponse.json({ error: 'Students and challenge are required' }, { status: 400 });
@@ -73,6 +73,10 @@ export async function POST(request: Request) {
       "Challenges": [challengeId],
       "Group Number": assignedGroupNumber,
     };
+
+    if (enquiryGroup) {
+      fields["Enquiry Group"] = enquiryGroup;
+    }
 
     const newTeam = await base('Teams').create([{ fields }]);
 

@@ -16,6 +16,7 @@ export async function GET(request: Request) {
       id: record.id,
       name: record.get('Name') as string,
       abbreviation: record.get('Abbreviation') as string || "",
+      enquiryGroups: record.get('Enquiry Groups') as string[] || [],
     }));
 
     return NextResponse.json({ challenges });
