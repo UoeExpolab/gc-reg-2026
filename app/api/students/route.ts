@@ -75,6 +75,7 @@ export async function GET(request: Request) {
         return {
           id: record.id,
           name: (record.get('Name') as string) || (record.get('Email') as string) || `Student ${record.get('ID')}`,
+          email: record.get('Email') as string,
           challengeIds,
           inTeam: assignedStudentIds.has(record.id)
         };

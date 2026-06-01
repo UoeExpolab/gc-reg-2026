@@ -114,12 +114,14 @@ function FormField({ label, required, optional, help, helpAccent, error, childre
 type StudentOption = {
   value: string;
   label: string;
+  email: string;
   challengeIds: string[];
 };
 
 type StudentResponseItem = {
   id: string;
   name: string;
+  email?: string;
   challengeIds?: string[];
 };
 
@@ -130,7 +132,11 @@ export default function TeamRegistrationForm() {
   const [pick, setPick] = useState("");
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
   const [selectedEnquiryGroup, setSelectedEnquiryGroup] = useState("");
-  const [registeredGroupNumber, setRegisteredGroupNumber] = useState("");
+  const [submittedData, setSubmittedData] = useState<{
+    groupNumber: string;
+    rosterIds: string[];
+    printingEmail: string;
+  } | null>(null);
   const [printingEmail, setPrintingEmail] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -150,6 +156,7 @@ export default function TeamRegistrationForm() {
           .map(s => ({
             value: s.id,
             label: s.name,
+            email: s.email || "",
             challengeIds: Array.isArray(s.challengeIds) ? s.challengeIds : [],
           }))
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" })));
@@ -172,7 +179,7 @@ export default function TeamRegistrationForm() {
     if (!pick) return;
     setRoster([...roster, pick]);
     setPick("");
-    setRegisteredGroupNumber("");
+    setSubmittedData(null);
     setErrors(e => ({ ...e, roster: "" }));
   };
 
@@ -222,7 +229,11 @@ export default function TeamRegistrationForm() {
       });
       const data = await res.json();
       if (res.ok) {
-        setRegisteredGroupNumber(data.groupNumber);
+        setSubmittedData({
+          groupNumber: data.groupNumber,
+          rosterIds: roster,
+          printingEmail: printingEmail.trim()
+        });
         toast({ variant: "success", title: "Team registered!", sub: `Check your email (and spam folder) for confirmation.` });
         setRoster([]); setPick(""); setSelectedChallengeId(""); setSelectedEnquiryGroup(""); setPrintingEmail(""); setErrors({});
         setFormToken(await fetchFormVerificationToken());
@@ -238,19 +249,66 @@ export default function TeamRegistrationForm() {
 
   if (isLoading) return <div style={{ textAlign: "center", padding: "40px 0", color: "var(--ink-50)" }}><Loader /></div>;
 
+  const getPrintUsername = (groupName: string) => {
+    const match = groupName.trim().match(/^([A-Za-z]+)\s*(\d+)$/i);
+    if (!match) return groupName;
+    const prefix = match[1].toUpperCase();
+    const num = match[2];
+    
+    const map: Record<string, string> = {
+      "CEE": "Climate",
+      "DSR": "Defence",
+      "EI": "Education Innovation",
+      "FF": "Future Food",
+      "MHEW": "Mental Health",
+      "SI": "Social Inequality",
+      "GCP": "Penryn"
+    };
+    
+    return `${map[prefix] || prefix} ${num}`;
+  };
+
   return (
     <form onSubmit={handleSubmit} noValidate>
-      {registeredGroupNumber && (
-        <div className="team-confirmation" role="status">
-          <div className="k">Team registered</div>
-          <div className="v">Your team name is <strong>{registeredGroupNumber}</strong></div>
-          <p style={{ marginTop: "12px", fontSize: "14px", color: "var(--ink-50)" }}>
-            We've emailed a confirmation to your team lead. Please check your spam folder just in case.
-          </p>
+      {submittedData && (
+        <div className="team-confirmation" role="status" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--bg-muted)', padding: '16px', borderRadius: '8px' }}>
+            <div>
+              <div className="k">Team Name</div>
+              <div className="v" style={{ fontSize: '1.25rem' }}><strong>{submittedData.groupNumber}</strong></div>
+            </div>
+            <div>
+              <div className="k">Print Details</div>
+              <div style={{ fontSize: '14px', marginTop: '4px' }}>
+                <div><strong>Username:</strong> {getPrintUsername(submittedData.groupNumber)}</div>
+                <div><strong>Password:</strong> Pass</div>
+                <div><strong>Email:</strong> {submittedData.printingEmail}</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="k" style={{ marginBottom: '8px' }}>Team Members</div>
+            <div className="roster" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+              {submittedData.rosterIds.map((id, i) => {
+                const s = students.find(x => x.value === id);
+                return (
+                  <div key={id} className="roster-row" style={{ padding: '8px 12px', borderBottom: i < submittedData.rosterIds.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <div className="idx">{String(i + 1).padStart(2, "0")}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span className="name"><strong>{s?.label}</strong></span>
+                      {s?.email && <span style={{ fontSize: '12px', color: 'var(--ink-50)' }}>{s.email}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
-      <FormField label="Challenge" required
+      {!submittedData && (
+        <>
+          <FormField label="Challenge" required
                  help={challengeObj ? <>Group prefix will be <strong>{challengeObj.abbreviation}</strong></> : undefined}
                  helpAccent={!!challengeObj}
                  error={errors.challenge}>
@@ -259,7 +317,7 @@ export default function TeamRegistrationForm() {
                     setSelectedChallengeId(v);
                     setSelectedEnquiryGroup("");
                     setPick("");
-                    setRegisteredGroupNumber("");
+                    setSubmittedData(null);
                     setRoster(current => current.filter(id => students.find(s => s.value === id)?.challengeIds.includes(v)));
                     setErrors(x => ({ ...x, challenge: "", roster: "", enquiryGroup: "" }));
                   }}
@@ -312,7 +370,7 @@ export default function TeamRegistrationForm() {
                   <div>
                     <span className="name">{s?.label}</span>
                   </div>
-                  <button type="button" className="rm" onClick={() => { setRoster(roster.filter(x => x !== id)); setRegisteredGroupNumber(""); }} aria-label="Remove">
+                  <button type="button" className="rm" onClick={() => { setRoster(roster.filter(x => x !== id)); setSubmittedData(null); }} aria-label="Remove">
                     <XIcon />
                   </button>
                 </div>
@@ -342,6 +400,8 @@ export default function TeamRegistrationForm() {
           </button>
         </div>
       </div>
+        </>
+      )}
     </form>
   );
 }
