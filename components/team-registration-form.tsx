@@ -142,6 +142,25 @@ export default function TeamRegistrationForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formToken, setFormToken] = useState("");
+  const [countdown, setCountdown] = useState(60);
+
+  useEffect(() => {
+    let timer: number;
+    if (submittedData) {
+      setCountdown(60);
+      timer = window.setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            window.clearInterval(timer);
+            window.location.reload();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => window.clearInterval(timer);
+  }, [submittedData]);
 
   useEffect(() => {
     Promise.all([
@@ -272,6 +291,14 @@ export default function TeamRegistrationForm() {
     <form onSubmit={handleSubmit} noValidate>
       {submittedData && (
         <div className="team-confirmation" role="status" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ background: 'var(--bg-muted)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+              📸 Please take a picture of the details below!
+            </div>
+            <div style={{ color: 'var(--ink-50)', fontSize: '0.9rem' }}>
+              Page will automatically refresh for the next user in <strong>{countdown}</strong> seconds.
+            </div>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--bg-muted)', padding: '16px', borderRadius: '8px' }}>
             <div>
               <div className="k">Team Name</div>
