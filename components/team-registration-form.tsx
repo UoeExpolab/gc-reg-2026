@@ -131,6 +131,7 @@ export default function TeamRegistrationForm() {
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
   const [selectedEnquiryGroup, setSelectedEnquiryGroup] = useState("");
   const [registeredGroupNumber, setRegisteredGroupNumber] = useState("");
+  const [printingEmail, setPrintingEmail] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -182,6 +183,11 @@ export default function TeamRegistrationForm() {
     if (challengeObj?.enquiryGroups && challengeObj.enquiryGroups.length > 0 && !selectedEnquiryGroup) {
       e.enquiryGroup = "Select an enquiry group.";
     }
+    if (!printingEmail.trim()) {
+      e.printingEmail = "Printing email is required.";
+    } else if (!/^\S+@\S+\.\S+$/.test(printingEmail.trim())) {
+      e.printingEmail = "Enter a valid email address.";
+    }
     if (selectedChallengeId && roster.some(id => !studentsForChallenge.some(s => s.value === id))) {
       e.roster = "Only add students linked to this Challenge track.";
     }
@@ -210,6 +216,7 @@ export default function TeamRegistrationForm() {
         body: JSON.stringify({ 
           studentIds: roster, 
           challengeId: selectedChallengeId,
+          printingEmail: printingEmail.trim(),
           ...(selectedEnquiryGroup && { enquiryGroup: selectedEnquiryGroup })
         }),
       });
@@ -217,7 +224,7 @@ export default function TeamRegistrationForm() {
       if (res.ok) {
         setRegisteredGroupNumber(data.groupNumber);
         toast({ variant: "success", title: "Team registered!", sub: `Check your email (and spam folder) for confirmation.` });
-        setRoster([]); setPick(""); setSelectedChallengeId(""); setSelectedEnquiryGroup(""); setErrors({});
+        setRoster([]); setPick(""); setSelectedChallengeId(""); setSelectedEnquiryGroup(""); setPrintingEmail(""); setErrors({});
         setFormToken(await fetchFormVerificationToken());
       } else {
         toast({ variant: "danger", title: "Error", sub: data.error || "Failed to register team." });
@@ -273,6 +280,19 @@ export default function TeamRegistrationForm() {
                     placeholder="Select an enquiry group" />
         </FormField>
       )}
+
+      <FormField label="Printing Email" required error={errors.printingEmail} help="This email will be used for printing services.">
+        <input 
+          type="email" 
+          className={`input${errors.printingEmail ? " error" : ""}`} 
+          value={printingEmail} 
+          onChange={e => {
+            setPrintingEmail(e.target.value);
+            setErrors(x => ({ ...x, printingEmail: "" }));
+          }}
+          placeholder="email@example.com"
+        />
+      </FormField>
 
       <FormField
         label={`Team members (${roster.length})`}

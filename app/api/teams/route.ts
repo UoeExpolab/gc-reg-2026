@@ -36,10 +36,10 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { studentIds, challengeId, enquiryGroup } = body;
+    const { studentIds, challengeId, enquiryGroup, printingEmail } = body;
 
-    if (!Array.isArray(studentIds) || studentIds.length === 0 || !challengeId) {
-      return NextResponse.json({ error: 'Students and challenge are required' }, { status: 400 });
+    if (!Array.isArray(studentIds) || studentIds.length === 0 || !challengeId || !printingEmail) {
+      return NextResponse.json({ error: 'Students, challenge, and printing email are required' }, { status: 400 });
     }
 
     // Auto-calculate the next group number for this challenge
@@ -72,6 +72,7 @@ export async function POST(request: Request) {
       "Students": studentIds,
       "Challenges": [challengeId],
       "Group Number": assignedGroupNumber,
+      "Printing Email": printingEmail,
     };
 
     if (enquiryGroup) {
