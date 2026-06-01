@@ -216,7 +216,7 @@ export default function TeamRegistrationForm() {
       const data = await res.json();
       if (res.ok) {
         setRegisteredGroupNumber(data.groupNumber);
-        toast({ variant: "success", title: "Team registered!", sub: `Your team name is ${data.groupNumber}.` });
+        toast({ variant: "success", title: "Team registered!", sub: `Check your email (and spam folder) for confirmation.` });
         setRoster([]); setPick(""); setSelectedChallengeId(""); setSelectedEnquiryGroup(""); setErrors({});
         setFormToken(await fetchFormVerificationToken());
       } else {
@@ -237,6 +237,9 @@ export default function TeamRegistrationForm() {
         <div className="team-confirmation" role="status">
           <div className="k">Team registered</div>
           <div className="v">Your team name is <strong>{registeredGroupNumber}</strong></div>
+          <p style={{ marginTop: "12px", fontSize: "14px", color: "var(--ink-50)" }}>
+            We've emailed a confirmation to your team lead. Please check your spam folder just in case.
+          </p>
         </div>
       )}
 

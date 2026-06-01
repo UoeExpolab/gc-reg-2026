@@ -231,7 +231,7 @@ export default function TableReservationForm() {
       const data = await res.json();
       if (res.ok) {
         const tableName = tables.find(t => t.id === selectedTableId)?.name;
-        toast({ variant: "success", title: "Table reserved!", sub: tableName });
+        toast({ variant: "success", title: "Table reserved!", sub: `${tableName}. Check your email (and spam) for confirmation.` });
         setSelectedTeamId(""); setSelectedTableId(""); setErrors({});
         setFormToken(await fetchFormVerificationToken());
       } else {

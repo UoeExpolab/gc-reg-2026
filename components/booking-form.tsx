@@ -204,7 +204,7 @@ export default function BookingForm() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast({ variant: "success", title: "Kit reserved!", sub: `${selectedInventoryIds.length} item${selectedInventoryIds.length > 1 ? "s" : ""} reserved.` });
+        toast({ variant: "success", title: "Kit reserved!", sub: `${selectedInventoryIds.length} item${selectedInventoryIds.length > 1 ? "s" : ""} reserved. Check your email (and spam) for confirmation.` });
         setSelectedTeamId(""); setSelectedInventoryIds([]); setSelectedTimeSlotId(""); setErrors({});
         setFormToken(await fetchFormVerificationToken());
       } else {
