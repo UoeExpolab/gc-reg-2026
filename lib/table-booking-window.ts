@@ -1,5 +1,5 @@
-export const TABLE_BOOKING_OPENS_AT = "2067-07-06T08:00:00.000Z";
-export const TABLE_BOOKING_CLOSES_AT = "2067-07-06T16:00:00.000Z";
+export const TABLE_BOOKING_OPENS_AT = "6767-07-06T08:00:00.000Z";
+export const TABLE_BOOKING_CLOSES_AT = "6767-07-06T16:00:00.000Z";
 export const TABLE_BOOKING_TIME_ZONE = "Europe/London";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
